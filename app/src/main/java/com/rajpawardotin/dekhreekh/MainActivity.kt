@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.rajpawardotin.dekhreekh.components.TrackingHUD
 import com.rajpawardotin.dekhreekh.components.TrackingMap
 import com.rajpawardotin.dekhreekh.components.VaultScreen
 import com.rajpawardotin.dekhreekh.service.TelemetryStatus
@@ -39,6 +40,7 @@ class MainActivity : ComponentActivity() {
 
                 var lastValidLocation by remember { mutableStateOf<Location?>(null) }
                 var showVault by remember { mutableStateOf(false) }
+                var focusTrigger by remember { mutableStateOf(0) }
 
                 // UI/Presentation Filter
                 LaunchedEffect(rawLocation) {
@@ -67,12 +69,14 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     containerColor = MaterialTheme.colorScheme.background,
                     floatingActionButton = {
-                        FloatingActionButton(
-                            onClick = { showVault = !showVault },
-                            containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
-                            contentColor = Color.Black
-                        ) {
-                            Icon(Icons.Default.Storage, contentDescription = "Vault")
+                        if (telemetryStatus == TelemetryStatus.IDLE || showVault) {
+                            FloatingActionButton(
+                                onClick = { showVault = !showVault },
+                                containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
+                                contentColor = Color.Black
+                            ) {
+                                Icon(Icons.Default.Storage, contentDescription = "Vault")
+                            }
                         }
                     }
                 ) { innerPadding ->
@@ -81,33 +85,48 @@ class MainActivity : ComponentActivity() {
                         if (showVault) {
                             VaultScreen()
                         } else {
+                            // STABLE MAP LAYER: Present whenever we have any coordinates
                             if (realPath.isNotEmpty()) {
-                                TrackingMap(pathCoordinates = realPath)
+                                TrackingMap(
+                                    pathCoordinates = realPath,
+                                    focusTrigger = focusTrigger
+                                )
                             }
 
-                            Column(
-                                modifier = Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                when (telemetryStatus) {
-                                    TelemetryStatus.IDLE -> {
-                                        Button(
-                                            onClick = { launcher.launch(TelemetryPermissions) },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.primary,
-                                                contentColor = MaterialTheme.colorScheme.onPrimary
-                                            )
-                                        ) {
-                                            Text("IGNITE TELEMETRY ENGINE", style = MaterialTheme.typography.labelLarge)
+                            if (telemetryStatus == TelemetryStatus.LOCKED) {
+                                TrackingHUD(
+                                    onLocateClicked = { focusTrigger++ },
+                                    onStopClicked = {
+                                        realPath.clear()
+                                        lastValidLocation = null
+                                        focusTrigger = 0
+                                    }
+                                )
+                            } else {
+                                Column(
+                                    modifier = Modifier.align(Alignment.Center).padding(horizontal = 32.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    when (telemetryStatus) {
+                                        TelemetryStatus.IDLE -> {
+                                            Button(
+                                                onClick = { launcher.launch(TelemetryPermissions) },
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = MaterialTheme.colorScheme.primary,
+                                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                                )
+                                            ) {
+                                                Text("IGNITE TELEMETRY ENGINE", style = MaterialTheme.typography.labelLarge)
+                                            }
                                         }
+                                        TelemetryStatus.INITIALIZING -> {
+                                            Text("BOOTING HARDWARE...", color = MaterialTheme.colorScheme.primary, modifier = Modifier.alpha(pulseAlpha))
+                                        }
+                                        TelemetryStatus.SEARCHING -> {
+                                            Text("S25 ULTRA: SCANNING SATELLITES...", color = MaterialTheme.colorScheme.primary, modifier = Modifier.alpha(pulseAlpha))
+                                        }
+                                        TelemetryStatus.LOCKED -> {}
                                     }
-                                    TelemetryStatus.INITIALIZING -> {
-                                        Text("BOOTING HARDWARE...", color = MaterialTheme.colorScheme.primary, modifier = Modifier.alpha(pulseAlpha))
-                                    }
-                                    TelemetryStatus.SEARCHING -> {
-                                        Text("S25 ULTRA: SCANNING SATELLITES...", color = MaterialTheme.colorScheme.primary, modifier = Modifier.alpha(pulseAlpha))
-                                    }
-                                    TelemetryStatus.LOCKED -> {}
                                 }
                             }
 

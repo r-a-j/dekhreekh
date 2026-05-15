@@ -18,4 +18,8 @@ interface TelemetryDao {
     // The nuclear option for the Settings screen
     @Query("DELETE FROM raw_telemetry")
     suspend fun wipeDatabase()
+
+    // Pulls the entire run history, sorted by time
+    @Query("SELECT * FROM raw_telemetry ORDER BY timestamp ASC")
+    suspend fun getAllPoints(): List<TelemetryPoint>
 }

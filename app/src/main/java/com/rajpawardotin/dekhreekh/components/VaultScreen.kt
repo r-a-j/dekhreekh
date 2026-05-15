@@ -1,5 +1,7 @@
 package com.rajpawardotin.dekhreekh.components
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -8,7 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.rajpawardotin.dekhreekh.data.DekhreekhDatabase
+import com.rajpawardotin.dekhreekh.utils.ExportEngine
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun VaultScreen() {
@@ -21,6 +26,22 @@ fun VaultScreen() {
 
     // Rough estimation: ~64 bytes per row
     val estimatedSizeKb = (rowCount * 64) / 1024
+
+    // 1. The SAF File Creation Launcher
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/gpx+xml")
+    ) { uri ->
+        if (uri != null) {
+            // The user selected a folder and saved the file. Now we write the data to it.
+            coroutineScope.launch {
+                val success = ExportEngine.exportDatabaseToGpx(context, uri, db)
+                if (success) {
+                    // 2. The Purge: Only delete if the export actually worked!
+                    db.telemetryDao().wipeDatabase()
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -58,15 +79,18 @@ fun VaultScreen() {
 
         Spacer(modifier = Modifier.height(64.dp))
 
+        // Update the button to trigger the export pipeline instead of just deleting
         Button(
             onClick = {
-                coroutineScope.launch {
-                    db.telemetryDao().wipeDatabase()
-                }
+                // Generate a smart default filename with a unique short-timestamp identifier
+                // Format: dekhreekh_export_2026-05-14_1530.gpx
+                val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss"))
+                exportLauncher.launch("dekhreekh_export_$timestamp.gpx")
             },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary) // Alert Red
+            enabled = rowCount > 0, // Disable if there's nothing to export
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
         ) {
-            Text("PURGE DATABASE", color = MaterialTheme.colorScheme.onPrimary)
+            Text("EXPORT GPX & PURGE VAULT", color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }

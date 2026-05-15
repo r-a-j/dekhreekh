@@ -1,9 +1,11 @@
 package com.rajpawardotin.dekhreekh.components
 
 import android.graphics.Color as AndroidColor
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -24,15 +26,21 @@ import org.maplibre.geojson.Point
 @Composable
 fun TrackingMap(
     modifier: Modifier = Modifier,
-    pathCoordinates: List<Point>
+    pathCoordinates: List<Point>,
+    focusTrigger: Int
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // We MUST keep the MapView instance stable across re-compositions
-    val mapView = remember { MapView(context) }
+    val mapView = remember { 
+        MapView(context).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+        }
+    }
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     var isStyleLoaded by remember { mutableStateOf(false) }
+    var hasInitialFocus by remember { mutableStateOf(false) }
 
     // Initialize the map ONLY once
     LaunchedEffect(mapView) {
@@ -69,13 +77,25 @@ fun TrackingMap(
                 isStyleLoaded = true
             }
 
-            // Initial Camera Settings
+            // Initial Camera Settings: Start at user location if already known to avoid pan from (0,0)
+            val initialLatLng = if (pathCoordinates.isNotEmpty()) {
+                val p = pathCoordinates.last()
+                LatLng(p.latitude(), p.longitude())
+            } else {
+                LatLng(0.0, 0.0)
+            }
+
             map.moveCamera(CameraUpdateFactory.newCameraPosition(
                 CameraPosition.Builder()
+                    .target(initialLatLng)
                     .zoom(16.0)
                     .tilt(60.0) // Aggressive 3D angle
                     .build()
             ))
+
+            if (pathCoordinates.isNotEmpty()) {
+                hasInitialFocus = true
+            }
         }
     }
 
@@ -86,26 +106,43 @@ fun TrackingMap(
 
         if (pathCoordinates.isNotEmpty()) {
             val latestPoint = pathCoordinates.last()
-            val latestLatLng = LatLng(latestPoint.latitude(), latestPoint.longitude())
 
             // Update the Path Line
-            if (pathCoordinates.size > 1) {
-                map.getStyle { style ->
+            map.getStyle { style ->
+                if (pathCoordinates.size > 1) {
                     val source = style.getSourceAs<GeoJsonSource>("tracking-path-source")
                     source?.setGeoJson(Feature.fromGeometry(LineString.fromLngLats(pathCoordinates)))
-                    
-                    val dotSource = style.getSourceAs<GeoJsonSource>("user-location-source")
-                    dotSource?.setGeoJson(Feature.fromGeometry(latestPoint))
                 }
-            } else if (pathCoordinates.size == 1) {
-                map.getStyle { style ->
-                    val dotSource = style.getSourceAs<GeoJsonSource>("user-location-source")
-                    dotSource?.setGeoJson(Feature.fromGeometry(latestPoint))
-                }
+                
+                val dotSource = style.getSourceAs<GeoJsonSource>("user-location-source")
+                dotSource?.setGeoJson(Feature.fromGeometry(latestPoint))
             }
 
-            // SMOOTH PAN: 1000ms animation matches the 1Hz update interval for fluid motion
-            map.animateCamera(CameraUpdateFactory.newLatLng(latestLatLng), 1000)
+            // AUTO-PAN ON FIRST LOCK
+            if (!hasInitialFocus) {
+                map.animateCamera(
+                    CameraUpdateFactory.newLatLng(LatLng(latestPoint.latitude(), latestPoint.longitude())),
+                    1000
+                )
+                hasInitialFocus = true
+            }
+        }
+    }
+
+    // Handle the "Locate Myself" Camera Snap
+    LaunchedEffect(focusTrigger) {
+        if (focusTrigger > 0 && pathCoordinates.isNotEmpty()) {
+            val latestPoint = pathCoordinates.last()
+            mapLibreMap?.animateCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.Builder()
+                        .target(LatLng(latestPoint.latitude(), latestPoint.longitude()))
+                        .zoom(17.0) // Zoom in tight
+                        .tilt(60.0) // Aggressive flagship 3D tilt
+                        .build()
+                ),
+                1200 // 1.2 second cinematic sweep
+            )
         }
     }
 
@@ -129,7 +166,9 @@ fun TrackingMap(
 
     AndroidView(
         factory = { mapView },
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            .background(ComposeColor.Black),
         update = { /* Updates are handled via LaunchedEffect for granular control */ }
     )
 }
