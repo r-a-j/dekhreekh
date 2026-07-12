@@ -60,20 +60,21 @@ fun DashboardScreen(
                 )
             }
             
-            // Foreground UI Layer
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-            if (!hasLocationPermission) {
-                // Permission Prompt
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(16.dp)
+                // Foreground UI Layer
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                    contentAlignment = Alignment.BottomCenter
                 ) {
+                if (!hasLocationPermission) {
+                    // Permission Prompt
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                     Text(
                         text = "Location Permission Required",
                         color = matrixGreen,
@@ -116,38 +117,37 @@ fun DashboardScreen(
                     is TrackingState.Tracking -> {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "ENGINE ACTIVE",
-                                color = matrixGreen,
-                                fontSize = 24.sp,
-                                letterSpacing = 4.sp
-                            )
-                            Spacer(modifier = Modifier.height(32.dp))
-                            
-                            ElevatedCard(
-                                modifier = Modifier.testTag("MetricCard_Distance").padding(8.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(text = "${uiState.distance}", color = neonCyan, fontSize = 32.sp)
-                                    Text(text = "Meters", color = Color.Gray)
+                                ElevatedCard(
+                                    modifier = Modifier.weight(1f).testTag("MetricCard_Distance").padding(end = 8.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(text = "${uiState.distance}", color = MaterialTheme.colorScheme.primary, fontSize = 28.sp)
+                                        Text(text = "Meters", color = Color.Gray, fontSize = 12.sp)
+                                    }
                                 }
-                            }
-                            
-                            ElevatedCard(
-                                modifier = Modifier.testTag("MetricCard_Pace").padding(8.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(text = "${uiState.pace}", color = neonCyan, fontSize = 32.sp)
-                                    Text(text = "Pace (s/km)", color = Color.Gray)
+                                
+                                ElevatedCard(
+                                    modifier = Modifier.weight(1f).testTag("MetricCard_Pace").padding(start = 8.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(text = "${uiState.pace}", color = MaterialTheme.colorScheme.primary, fontSize = 28.sp)
+                                        Text(text = "Pace (s/km)", color = Color.Gray, fontSize = 12.sp)
+                                    }
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(32.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
                             Button(
                                 onClick = { onIntent(TrackingIntent.HaltEngine) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Red, contentColor = Color.White)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                modifier = Modifier.fillMaxWidth().height(56.dp)
                             ) {
                                 Text("HALT ENGINE")
                             }

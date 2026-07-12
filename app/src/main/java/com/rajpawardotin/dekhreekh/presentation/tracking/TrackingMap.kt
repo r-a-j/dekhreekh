@@ -21,6 +21,11 @@ import org.maplibre.android.maps.MapView
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.engine.LocationEngineRequest
+import org.maplibre.android.location.engine.LocationEngineCallback
+import org.maplibre.android.location.engine.LocationEngineResult
+import java.lang.Exception
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
@@ -41,7 +46,48 @@ fun TrackingMap(
                 map.uiSettings.isLogoEnabled = false
                 map.uiSettings.isAttributionEnabled = false
                 
-                map.setStyle("https://demotiles.maplibre.org/style.json") { style ->
+                map.setStyle("https://tiles.openfreemap.org/styles/liberty") { style ->
+                    // 1. Enable User Location Tracking
+                    val locationComponent = map.locationComponent
+                    val locationRequest = LocationEngineRequest.Builder(1000L)
+                        .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
+                        .setFastestInterval(1000L)
+                        .build()
+                        
+                    val activationOptions = LocationComponentActivationOptions.builder(context, style)
+                        .locationEngineRequest(locationRequest)
+                        .build()
+                        
+                    locationComponent.activateLocationComponent(activationOptions)
+                    try {
+                        locationComponent.isLocationComponentEnabled = true
+                        locationComponent.cameraMode = org.maplibre.android.location.modes.CameraMode.TRACKING_COMPASS
+                        locationComponent.renderMode = org.maplibre.android.location.modes.RenderMode.COMPASS
+                        locationComponent.zoomWhileTracking(16.0)
+                        locationComponent.tiltWhileTracking(60.0)
+                        
+                        // Force initial camera position to prevent starting at Null Island
+                        val engine = locationComponent.locationEngine
+                        engine?.getLastLocation(object : LocationEngineCallback<LocationEngineResult> {
+                            override fun onSuccess(result: LocationEngineResult?) {
+                                result?.lastLocation?.let { loc ->
+                                    map.cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
+                                        .target(LatLng(loc.latitude, loc.longitude))
+                                        .zoom(16.0)
+                                        .tilt(60.0)
+                                        .build()
+                                        
+                                    // Re-enable tracking after manual camera move
+                                    locationComponent.cameraMode = org.maplibre.android.location.modes.CameraMode.TRACKING_COMPASS
+                                }
+                            }
+                            override fun onFailure(exception: Exception) {}
+                        })
+                    } catch (e: SecurityException) {
+                        // Permission not granted, handled by UI guard
+                    }
+
+                    // 3. Add telemetry polyline layer
                     val source = GeoJsonSource("tracking-source")
                     style.addSource(source)
 
@@ -86,15 +132,8 @@ fun TrackingMap(
                     val lineString = LineString.fromLngLats(points)
                     source.setGeoJson(Feature.fromGeometry(lineString))
                     
-                    // Smoothly animate camera to latest point
-                    val lastPoint = pathPoints.last()
-                    map.animateCamera(
-                        CameraUpdateFactory.newLatLngZoom(
-                            LatLng(lastPoint.latitude, lastPoint.longitude),
-                            16.0
-                        ),
-                        1000
-                    )
+                    // LocationComponent automatically tracks the camera. 
+                    // No need to manually animate here, which would cancel tracking mode.
                 } else if (source != null && pathPoints.isEmpty()) {
                     source.setGeoJson(Feature.fromGeometry(LineString.fromLngLats(emptyList())))
                 }
