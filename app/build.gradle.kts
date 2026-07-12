@@ -2,11 +2,12 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.androidApplication)
+    //alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinCompose)
     alias(libs.plugins.ksp)
 }
 
-val customLiquidGlassVersion = "1.0.0"
+val customLiquidGlassVersion = "1.1.0"
 
 android {
     namespace = "com.rajpawardotin.dekhreekh"
@@ -62,6 +63,8 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
     implementation("com.github.r-a-j:custom-liquid-glass:v$customLiquidGlassVersion")
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

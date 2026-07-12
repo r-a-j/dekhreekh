@@ -10,8 +10,10 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.location.*
-import com.rajpawardotin.dekhreekh.data.DekhreekhDatabase
-import com.rajpawardotin.dekhreekh.data.TelemetryPoint
+import com.rajpawardotin.dekhreekh.domain.models.TelemetryData
+import com.rajpawardotin.dekhreekh.domain.repository.SessionRepository
+import org.koin.android.ext.android.inject
+import org.koin.core.component.KoinComponent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +21,7 @@ import java.util.UUID
 
 enum class TelemetryStatus { IDLE, INITIALIZING, SEARCHING, LOCKED }
 
-class TrackingService : Service() {
+class TrackingService : Service(), KoinComponent {
 
     companion object {
         const val ACTION_START_TRACKING = "ACTION_START_TRACKING"
@@ -41,7 +43,7 @@ class TrackingService : Service() {
     }
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var database: DekhreekhDatabase
+    private val sessionRepository: SessionRepository by inject()
     private val serviceScope = CoroutineScope(Dispatchers.IO)
     private var currentSessionId: String = ""
     
@@ -60,16 +62,15 @@ class TrackingService : Service() {
             
             // 2. Pipe to SQLite Vault (Save the raw, unfiltered truth)
             serviceScope.launch {
-                val point = TelemetryPoint(
-                    sessionId = currentSessionId,
-                    timestamp = location.time,
+                val data = TelemetryData(
                     latitude = location.latitude,
                     longitude = location.longitude,
                     altitude = location.altitude,
                     accuracy = location.accuracy,
-                    speed = location.speed
+                    speed = location.speed,
+                    timestamp = location.time
                 )
-                database.telemetryDao().insertPoint(point)
+                sessionRepository.insertTelemetry(currentSessionId, data)
             }
 
             // 3. Telemetry Math: Calculate Distance
@@ -131,8 +132,10 @@ class TrackingService : Service() {
     @SuppressLint("MissingPermission")
     private fun startForegroundService() {
         _status.value = TelemetryStatus.INITIALIZING
-        currentSessionId = UUID.randomUUID().toString() 
-        database = DekhreekhDatabase.getDatabase(applicationContext)
+        
+        serviceScope.launch {
+            currentSessionId = sessionRepository.startSession()
+        }
 
         // Reset metrics
         elapsedSeconds.value = 0L
@@ -190,6 +193,17 @@ class TrackingService : Service() {
         // 2. Tear down the Foreground Notification
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
+        
+        serviceScope.launch {
+            if (currentSessionId.isNotEmpty()) {
+                sessionRepository.endSession(
+                    sessionId = currentSessionId,
+                    totalDistanceMeters = distanceMeters.value,
+                    totalDurationSeconds = elapsedSeconds.value,
+                    averagePace = currentPace.value
+                )
+            }
+        }
 
         // 3. Purge the Live State (Ready for the next session)
         _status.value = TelemetryStatus.IDLE

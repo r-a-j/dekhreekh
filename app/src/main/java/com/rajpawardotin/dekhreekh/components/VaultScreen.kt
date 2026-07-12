@@ -9,20 +9,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.rajpawardotin.dekhreekh.data.DekhreekhDatabase
+import org.koin.androidx.compose.koinViewModel
+import com.rajpawardotin.dekhreekh.presentation.vault.VaultViewModel
 import com.rajpawardotin.dekhreekh.utils.ExportEngine
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun VaultScreen() {
+fun VaultScreen(viewModel: VaultViewModel = koinViewModel()) {
     val context = LocalContext.current
-    val db = remember { DekhreekhDatabase.getDatabase(context) }
     val coroutineScope = rememberCoroutineScope()
     
     // Reactively observe the total row count
-    val rowCount by db.telemetryDao().getPingCount().collectAsState(initial = 0)
+    val rowCount by viewModel.totalPingCount.collectAsState(initial = 0)
 
     // Rough estimation: ~64 bytes per row
     val estimatedSizeKb = (rowCount * 64) / 1024
@@ -34,10 +34,10 @@ fun VaultScreen() {
         if (uri != null) {
             // The user selected a folder and saved the file. Now we write the data to it.
             coroutineScope.launch {
-                val success = ExportEngine.exportDatabaseToGpx(context, uri, db)
+                val success = ExportEngine.exportDatabaseToGpx(context, uri, viewModel.sessionRepository)
                 if (success) {
                     // 2. The Purge: Only delete if the export actually worked!
-                    db.telemetryDao().wipeDatabase()
+                    viewModel.wipeVault()
                 }
             }
         }

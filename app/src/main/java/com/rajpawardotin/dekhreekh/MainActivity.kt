@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import org.koin.androidx.compose.koinViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.rajpawardotin.dekhreekh.components.TrackingHUD
 import com.rajpawardotin.dekhreekh.components.TrackingMap
 import com.rajpawardotin.dekhreekh.components.VaultScreen
+import com.rajpawardotin.dekhreekh.presentation.tracking.TrackingViewModel
 import com.rajpawardotin.dekhreekh.service.TelemetryStatus
 import com.rajpawardotin.dekhreekh.service.TrackingService
 import com.rajpawardotin.dekhreekh.ui.TelemetryPermissions
@@ -33,9 +35,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             DekhreekhTheme {
+                val trackingViewModel: TrackingViewModel = koinViewModel()
                 val realPath = remember { mutableStateListOf<Point>() }
-                val rawLocation by TrackingService.locationStream.collectAsState()
-                val telemetryStatus by TrackingService.status.collectAsState()
+                val rawLocation by trackingViewModel.locationStream.collectAsState()
+                val telemetryStatus by trackingViewModel.telemetryStatus.collectAsState()
+                val elapsedSeconds by trackingViewModel.elapsedSeconds.collectAsState()
+                val distanceMeters by trackingViewModel.distanceMeters.collectAsState()
+                val currentPace by trackingViewModel.currentPace.collectAsState()
                 val launcher = rememberTelemetryLauncher()
 
                 var lastValidLocation by remember { mutableStateOf<Location?>(null) }
@@ -95,6 +101,9 @@ class MainActivity : ComponentActivity() {
 
                             if (telemetryStatus == TelemetryStatus.LOCKED) {
                                 TrackingHUD(
+                                    distanceMeters = distanceMeters,
+                                    paceSecondsPerKm = currentPace,
+                                    elapsedSeconds = elapsedSeconds,
                                     onLocateClicked = { focusTrigger++ },
                                     onStopClicked = {
                                         realPath.clear()

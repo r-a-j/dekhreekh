@@ -2,7 +2,7 @@ package com.rajpawardotin.dekhreekh.utils
 
 import android.content.Context
 import android.net.Uri
-import com.rajpawardotin.dekhreekh.data.DekhreekhDatabase
+import com.rajpawardotin.dekhreekh.domain.repository.SessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.OutputStreamWriter
@@ -15,10 +15,10 @@ object ExportEngine {
      * Extracts all telemetry from Room and writes it to a standard .gpx file.
      * Returns true if successful, false if it failed or the database was empty.
      */
-    suspend fun exportDatabaseToGpx(context: Context, uri: Uri, db: DekhreekhDatabase): Boolean {
+    suspend fun exportDatabaseToGpx(context: Context, uri: Uri, sessionRepository: SessionRepository): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                val points = db.telemetryDao().getAllPoints()
+                val points = sessionRepository.getAllTelemetry()
                 if (points.isEmpty()) return@withContext false
 
                 // Open the file stream provided by the Android Storage Access Framework

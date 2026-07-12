@@ -14,18 +14,19 @@ import com.rajpawardotin.dekhreekh.utils.formatPace
 import com.rajpawardotin.dekhreekh.utils.formatTime
 
 @Composable
-fun TrackingHUD(onLocateClicked: () -> Unit, onStopClicked: () -> Unit) {
+fun TrackingHUD(
+    distanceMeters: Float,
+    paceSecondsPerKm: Long,
+    elapsedSeconds: Long,
+    onLocateClicked: () -> Unit,
+    onStopClicked: () -> Unit
+) {
     val context = LocalContext.current
-    
-    // Collect the live metrics from the service
-    val distance by TrackingService.distanceMeters.collectAsState()
-    val pace by TrackingService.currentPace.collectAsState()
-    val time by TrackingService.elapsedSeconds.collectAsState()
 
     // Format the math for the UI
-    val distanceKm = String.format(java.util.Locale.getDefault(), "%.2f", distance / 1000f)
-    val formattedTime = formatTime(time) // e.g., 01:24:03
-    val formattedPace = formatPace(pace) // e.g., 5:30
+    val distanceKm = String.format(java.util.Locale.getDefault(), "%.2f", distanceMeters / 1000f)
+    val formattedTime = formatTime(elapsedSeconds) // e.g., 01:24:03
+    val formattedPace = formatPace(paceSecondsPerKm) // e.g., 5:30
 
     Box(modifier = Modifier.fillMaxSize()) {
         // 1. The Tactical "Locate" FAB (Top Right)
