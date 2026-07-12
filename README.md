@@ -13,7 +13,7 @@ I am a software engineer and data scientist, and I wanted to see what happens wh
 
 1. **Unconstrained Hardware:** I don't support 5-year-old budget phones. By dropping legacy support, this app can run 100Hz IMU polling, raw dual-band GPS, and real-time Kalman filtering without worrying about memory limits.
 2. **Local Everything:** Your data shouldn't be held hostage. Dekhreekh uses Android Health Connect to pull wearable data, stores gigabytes of raw telemetry in a local Room database, and backs up directly to your personal Google Drive. Zero backend servers. Zero subscription costs.
-3. **Lab-Grade UI:** No white backgrounds or bubbly buttons. The app uses a pure OLED-black "Stealth Data" aesthetic to save battery during long runs, accented with high-contrast Matrix Green. The UI runs entirely on custom AGSL shaders and 120Hz liquid glass components.
+3. **Standard Material 3 UI:** The app uses standard Android UI components with dynamic theming to adhere to Android's native design guidelines while keeping the map prominent.
 
 ---
 

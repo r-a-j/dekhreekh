@@ -21,20 +21,17 @@ val Typography = Typography(
         fontFamily = JetBrainsMono,
         fontWeight = FontWeight.Bold,
         fontSize = 56.sp,
-        letterSpacing = (-1.5).sp,
-        color = TextPrimary
+        letterSpacing = (-1.5).sp
     ),
     headlineMedium = TextStyle(
         fontFamily = JetBrainsMono,
         fontWeight = FontWeight.Medium,
-        fontSize = 28.sp,
-        color = TextPrimary
+        fontSize = 28.sp
     ),
     labelSmall = TextStyle(
         fontFamily = InterFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 10.sp,
-        letterSpacing = 1.5.sp,
-        color = TextSecondary
+        letterSpacing = 1.5.sp
     )
 )

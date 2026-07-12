@@ -10,8 +10,7 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.location.*
-import com.rajpawardotin.dekhreekh.domain.models.TelemetryData
-import com.rajpawardotin.dekhreekh.domain.repository.SessionRepository
+import com.rajpawardotin.dekhreekh.service.SessionRecorder
 import org.koin.android.ext.android.inject
 import org.koin.core.component.KoinComponent
 import kotlinx.coroutines.*
@@ -43,9 +42,8 @@ class TrackingService : Service(), KoinComponent {
     }
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private val sessionRepository: SessionRepository by inject()
+    private val sessionRecorder: SessionRecorder by inject()
     private val serviceScope = CoroutineScope(Dispatchers.IO)
-    private var currentSessionId: String = ""
     
     private var isTracking = false
     private var timerJob: Job? = null
@@ -62,7 +60,7 @@ class TrackingService : Service(), KoinComponent {
             
             // 2. Pipe to SQLite Vault (Save the raw, unfiltered truth)
             serviceScope.launch {
-                val data = TelemetryData(
+                sessionRecorder.processLocationPing(
                     latitude = location.latitude,
                     longitude = location.longitude,
                     altitude = location.altitude,
@@ -70,7 +68,6 @@ class TrackingService : Service(), KoinComponent {
                     speed = location.speed,
                     timestamp = location.time
                 )
-                sessionRepository.insertTelemetry(currentSessionId, data)
             }
 
             // 3. Telemetry Math: Calculate Distance
@@ -131,10 +128,16 @@ class TrackingService : Service(), KoinComponent {
 
     @SuppressLint("MissingPermission")
     private fun startForegroundService() {
+        if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            _status.value = TelemetryStatus.IDLE
+            stopSelf()
+            return
+        }
+
         _status.value = TelemetryStatus.INITIALIZING
         
         serviceScope.launch {
-            currentSessionId = sessionRepository.startSession()
+            sessionRecorder.startRecording()
         }
 
         // Reset metrics
@@ -195,14 +198,11 @@ class TrackingService : Service(), KoinComponent {
         stopSelf()
         
         serviceScope.launch {
-            if (currentSessionId.isNotEmpty()) {
-                sessionRepository.endSession(
-                    sessionId = currentSessionId,
-                    totalDistanceMeters = distanceMeters.value,
-                    totalDurationSeconds = elapsedSeconds.value,
-                    averagePace = currentPace.value
-                )
-            }
+            sessionRecorder.stopRecording(
+                totalDistanceMeters = distanceMeters.value,
+                totalDurationSeconds = elapsedSeconds.value,
+                averagePace = currentPace.value
+            )
         }
 
         // 3. Purge the Live State (Ready for the next session)

@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.rajpawardotin.dekhreekh.service.TrackingService
 import com.rajpawardotin.dekhreekh.utils.formatPace
@@ -54,27 +55,27 @@ fun TrackingHUD(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                LiquidMetricCard(
+                MetricCard(
                     label = "DISTANCE",
                     value = distanceKm,
                     unit = "KM",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).testTag("MetricCard_Distance")
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                LiquidMetricCard(
+                MetricCard(
                     label = "PACE",
                     value = formattedPace,
                     unit = "/KM",
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).testTag("MetricCard_Pace")
                 )
             }
             
             // A wider central card for the primary timer
-            LiquidMetricCard(
+            MetricCard(
                 label = "DURATION",
                 value = formattedTime,
                 unit = "",
-                modifier = Modifier.fillMaxWidth() 
+                modifier = Modifier.fillMaxWidth().testTag("MetricCard_Duration")
             )
 
             // The EXTINGUISH Button
@@ -93,7 +94,7 @@ fun TrackingHUD(
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.tertiary // Alert Red
+                    containerColor = MaterialTheme.colorScheme.error
                 ),
                 shape = MaterialTheme.shapes.medium
             ) {

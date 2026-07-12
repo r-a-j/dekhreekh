@@ -3,6 +3,7 @@ package com.rajpawardotin.dekhreekh.di
 import com.rajpawardotin.dekhreekh.data.local.DekhreekhDatabase
 import com.rajpawardotin.dekhreekh.data.repository.SessionRepositoryImpl
 import com.rajpawardotin.dekhreekh.domain.repository.SessionRepository
+import com.rajpawardotin.dekhreekh.service.SessionRecorder
 import com.rajpawardotin.dekhreekh.presentation.tracking.TrackingViewModel
 import com.rajpawardotin.dekhreekh.presentation.vault.VaultViewModel
 import androidx.room.Room
@@ -24,10 +25,11 @@ val appModule = module {
     single { get<DekhreekhDatabase>().sessionDao() }
     single { get<DekhreekhDatabase>().telemetryDao() }
 
-    // Repositories
+    // Repositories & Use Cases
     single<SessionRepository> { SessionRepositoryImpl(get(), get()) }
+    single { SessionRecorder(get()) }
 
     // ViewModels
-    viewModel { TrackingViewModel() }
+    viewModel { TrackingViewModel(get(), get()) }
     viewModel { VaultViewModel(get()) }
 }

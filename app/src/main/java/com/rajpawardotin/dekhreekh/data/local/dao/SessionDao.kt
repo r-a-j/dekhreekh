@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.rajpawardotin.dekhreekh.data.local.entity.SessionEntity
+import com.rajpawardotin.dekhreekh.data.local.entity.SessionWithTelemetry
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -18,6 +19,10 @@ interface SessionDao {
 
     @Query("SELECT * FROM workout_sessions ORDER BY startTime DESC")
     fun getAllSessions(): Flow<List<SessionEntity>>
+
+    @androidx.room.Transaction
+    @Query("SELECT * FROM workout_sessions ORDER BY startTime DESC")
+    fun getSessionsWithTelemetry(): Flow<List<SessionWithTelemetry>>
 
     @Query("SELECT * FROM workout_sessions WHERE id = :sessionId")
     suspend fun getSessionById(sessionId: String): SessionEntity?
