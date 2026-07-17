@@ -32,6 +32,7 @@ import com.rajpawardotin.dekhreekh.presentation.tracking.TrackingIntent
 import com.rajpawardotin.dekhreekh.presentation.tracking.TrackingState
 import com.rajpawardotin.dekhreekh.presentation.tracking.TrackingMap
 import com.rajpawardotin.dekhreekh.domain.models.TelemetryData
+import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
 
 @Composable
@@ -52,6 +53,12 @@ fun DashboardScreen(
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    BackHandler(enabled = drawerState.isOpen) {
+        scope.launch {
+            drawerState.close()
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,

@@ -115,6 +115,10 @@ fun AppNavigation(navController: NavHostController) {
                     val context = LocalContext.current
                     val scope = rememberCoroutineScope()
 
+                    BackHandler(enabled = showVault) {
+                        showVault = false
+                    }
+
                     // Pending import URI (held until user confirms name)
                     var pendingImportUri by remember { mutableStateOf<android.net.Uri?>(null) }
                     var importNameInput by remember { mutableStateOf("") }
