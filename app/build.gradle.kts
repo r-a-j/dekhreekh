@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.maplibre.sdk)
     implementation("androidx.webkit:webkit:1.11.0")
+    implementation("com.github.r-a-j:custom-liquid-glass:v1.1.0")
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

@@ -2,6 +2,7 @@ package com.rajpawardotin.dekhreekh.presentation.vault
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,12 +24,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import io.github.raj.liquid.rememberLiquidState
+import io.github.raj.liquid.LiquidState
+import io.github.raj.liquid.liquefiable
+import io.github.raj.liquid.molecules.LiquidGlassCard
+import io.github.raj.liquid.molecules.LiquidGlassChip
 import androidx.compose.ui.unit.sp
 import com.rajpawardotin.dekhreekh.domain.models.WorkoutSession
 import java.time.Instant
@@ -60,6 +69,7 @@ fun VaultScreen(
     val glassBg = Color(0xEA12121E)
     val voltGreen = Color(0xFFD4FF00)
     val dimText = Color(0xFF6B6B80)
+    val liquidState = rememberLiquidState()
 
     // Action bottom sheet state
     var sheetSession by remember { mutableStateOf<WorkoutSession?>(null) }
@@ -150,82 +160,86 @@ fun VaultScreen(
             )
         }
     ) { innerPadding ->
-
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(darkBg)
         ) {
+            // Sibling 1: The background (liquefiable)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .liquefiable(liquidState)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF0A0A0F),
+                                Color(0xFF161622)
+                            )
+                        )
+                    )
+            )
 
-            // ── Tag filter chip row ──────────────────────────────────────────
-            if (allTags.isNotEmpty()) {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (activeTagFilter.isNotEmpty()) {
-                        item {
-                            FilterChip(
-                                selected = false,
-                                onClick = onClearTagFilter,
-                                label = { Text("Clear", fontSize = 11.sp) },
-                                leadingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp)) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = Color(0x33FF4C4C),
-                                    labelColor = Color(0xFFFF6B6B)
+            // Sibling 2: The content Column
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // ── Tag filter chip row ──────────────────────────────────────────
+                if (allTags.isNotEmpty()) {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (activeTagFilter.isNotEmpty()) {
+                            item {
+                                LiquidGlassChip(
+                                    label = "Clear",
+                                    onClick = onClearTagFilter,
+                                    liquidState = liquidState,
+                                    selected = false,
+                                    leadingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp), tint = Color(0xFFFF5252)) }
                                 )
+                            }
+                        }
+                        items(allTags.toList().sorted()) { tag ->
+                            val active = tag in activeTagFilter
+                            LiquidGlassChip(
+                                label = "#$tag",
+                                onClick = { onTagToggle(tag) },
+                                liquidState = liquidState,
+                                selected = active
                             )
                         }
                     }
-                    items(allTags.toList().sorted()) { tag ->
-                        val active = tag in activeTagFilter
-                        FilterChip(
-                            selected = active,
-                            onClick = { onTagToggle(tag) },
-                            label = { Text("#$tag", fontSize = 11.sp) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0x33D4FF00),
-                                selectedLabelColor = voltGreen,
-                                containerColor = Color(0x1AFFFFFF),
-                                labelColor = dimText
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = active,
-                                selectedBorderColor = voltGreen,
-                                borderColor = Color(0x26FFFFFF)
-                            )
-                        )
-                    }
                 }
-            }
 
-            // ── Session list ─────────────────────────────────────────────────
-            when (uiState) {
-                VaultState.Empty -> EmptyVaultContent(voltGreen = voltGreen, dimText = dimText)
-                is VaultState.HistoryLoaded -> {
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.testTag("VaultSessionList")
-                    ) {
-                        items(uiState.items, key = { item ->
-                            when (item) {
-                                is VaultListItem.Header -> "header_${item.dateLabel}"
-                                is VaultListItem.SessionItem -> item.session.id
-                            }
-                        }) { item ->
-                            when (item) {
-                                is VaultListItem.Header -> DateHeaderRow(item.dateLabel, dimText)
-                                is VaultListItem.SessionItem -> SessionCard(
-                                    session = item.session,
-                                    voltGreen = voltGreen,
-                                    glassBg = glassBg,
-                                    dimText = dimText,
-                                    onClick = { onSessionClick(item.session.id) },
-                                    onLongPress = { sheetSession = item.session }
-                                )
+                // ── Session list ─────────────────────────────────────────────────
+                when (uiState) {
+                    VaultState.Empty -> EmptyVaultContent(voltGreen = voltGreen, dimText = dimText)
+                    is VaultState.HistoryLoaded -> {
+                        LazyColumn(
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.testTag("VaultSessionList")
+                        ) {
+                            items(uiState.items, key = { item ->
+                                when (item) {
+                                    is VaultListItem.Header -> "header_${item.dateLabel}"
+                                    is VaultListItem.SessionItem -> item.session.id
+                                }
+                            }) { item ->
+                                when (item) {
+                                    is VaultListItem.Header -> DateHeaderRow(item.dateLabel, dimText)
+                                    is VaultListItem.SessionItem -> SessionCard(
+                                        session = item.session,
+                                        voltGreen = voltGreen,
+                                        glassBg = glassBg,
+                                        dimText = dimText,
+                                        liquidState = liquidState,
+                                        onClick = { onSessionClick(item.session.id) },
+                                        onLongPress = { sheetSession = item.session }
+                                    )
+                                }
                             }
                         }
                     }
@@ -594,6 +608,7 @@ private fun SessionCard(
     voltGreen: Color,
     glassBg: Color,
     dimText: Color,
+    liquidState: LiquidState,
     onClick: () -> Unit,
     onLongPress: () -> Unit
 ) {
@@ -603,16 +618,12 @@ private fun SessionCard(
         if (durationMin < 60) "${durationMin}m" else it
     }
     val timeStr = Instant.ofEpochMilli(session.startTime)
-        .atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofPattern("hh:mm a"))
+         .atZone(ZoneId.systemDefault())
+         .format(DateTimeFormatter.ofPattern("hh:mm a"))
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = glassBg),
-        border = BorderStroke(
-            1.dp,
-            if (session.isLowActivity) Color(0x33FF9800) else Color(0x1AFFFFFF)
-        ),
         shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = glassBg.copy(alpha = 0.6f)),
         modifier = Modifier
             .fillMaxWidth()
             .testTag("SessionCard_${session.id}")
@@ -621,7 +632,9 @@ private fun SessionCard(
                 onLongClick = onLongPress
             )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -666,16 +679,15 @@ private fun SessionCard(
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     items(session.tags) { tag ->
-                        val tagColor = getTagColor(tag)
-                        Text(
-                            text = "#$tag",
-                            color = tagColor,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
+                        Box(
                             modifier = Modifier
-                                .background(tagColor.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
-                        )
+                                .background(Color(0x33FFFFFF), RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(text = "#$tag", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        }
                     }
                 }
             }

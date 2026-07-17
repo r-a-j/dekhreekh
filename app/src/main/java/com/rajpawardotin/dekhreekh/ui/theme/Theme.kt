@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 import androidx.compose.ui.graphics.Color
+import io.github.raj.liquid.LiquidGlassTheme
 
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFFD4FF00),      // Premium Volt Green
@@ -62,9 +63,11 @@ fun DekhreekhTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    LiquidGlassTheme {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

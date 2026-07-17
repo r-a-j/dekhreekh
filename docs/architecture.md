@@ -75,3 +75,11 @@ The local persistence layer strictly adheres to Clean Architecture via Room. We 
 - **In-Memory Reactive Sorting & Filtering:** `VaultViewModel` uses a declarative `combine` stream to join database sessions with active filters (tags list, low activity filter) and sort metrics (by date, duration, or distance).
 - **Global Tag Actions:** Exposes database mutations `renameTagGlobally(old, new)` and `deleteTagGlobally(tag)` running inside single Room transactions to allow global bulk updating and removing tags from all session records simultaneously.
 - **Tag Usage Counts:** Exposes active usage counts mapped globally for UI consumption in a dedicated Tag Manager Dialog inside the Vault screen.
+
+### 7. Liquid Glass Design System Integration
+- **Dependency Source:** Pulled online via JitPack coordinates `com.github.r-a-j:custom-liquid-glass:v1.1.0`. The temporary local folder `temp_aar/` has been removed.
+- **Theme Wrapper:** App themes inside `Theme.kt` wrap composables with `LiquidGlassTheme` alongside the standard `MaterialTheme`.
+- **Custom Molecules:**
+  - **`LiquidGlassCard`:** Applied to status cards, permission boxes, metrics layout containers (`MetricCard.kt`), and historical workout session items.
+  - **`LiquidButton`:** Replaced Material 3 buttons on the Dashboard (Start, Stop, and Grant Access) and HUD layout (Extinguish Engine).
+  - **`LiquidGlassChip`:** Replaced the filtering pills on the Vault Screen and session item tag displays.

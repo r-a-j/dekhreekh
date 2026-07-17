@@ -38,22 +38,28 @@ import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.PropertyFactory.*
 import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
+import io.github.raj.liquid.LiquidState
+import io.github.raj.liquid.molecules.LiquidGlassCard
+import androidx.compose.foundation.clickable
 
 @Composable
 fun TrackingMap(
     pathPoints: List<TelemetryData>,
     modifier: Modifier = Modifier,
     isStaticHistory: Boolean = false,
-    selectedPoint: TelemetryData? = null
+    selectedPoint: TelemetryData? = null,
+    liquidState: LiquidState? = null
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val mapView = remember {
-        MapView(context).apply {
+        val options = MapLibreMapOptions.createFromAttributes(context, null).textureMode(true)
+        MapView(context, options).apply {
             onCreate(null)
         }
     }
@@ -263,32 +269,68 @@ fun TrackingMap(
         // Locate button only shown in live tracking mode
         if (!isStaticHistory) {
             lastLocationState.value?.let { loc ->
-                IconButton(
-                    onClick = {
-                        mapLibreMap?.animateCamera(
-                            CameraUpdateFactory.newCameraPosition(
-                                CameraPosition.Builder()
-                                    .target(LatLng(loc.latitude, loc.longitude))
-                                    .zoom(16.0)
-                                    .tilt(60.0)
-                                    .build()
-                            ),
-                            1000
+                if (liquidState != null) {
+                    LiquidGlassCard(
+                        liquidState = liquidState,
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(0.dp),
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .statusBarsPadding()
+                            .padding(top = 76.dp, start = 16.dp)
+                            .size(48.dp)
+                            .clickable {
+                                mapLibreMap?.animateCamera(
+                                    CameraUpdateFactory.newCameraPosition(
+                                        CameraPosition.Builder()
+                                            .target(LatLng(loc.latitude, loc.longitude))
+                                            .zoom(16.0)
+                                            .tilt(60.0)
+                                            .build()
+                                    ),
+                                    1000
+                                )
+                            }
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MyLocation,
+                                contentDescription = "Locate",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                } else {
+                    IconButton(
+                        onClick = {
+                            mapLibreMap?.animateCamera(
+                                CameraUpdateFactory.newCameraPosition(
+                                    CameraPosition.Builder()
+                                        .target(LatLng(loc.latitude, loc.longitude))
+                                        .zoom(16.0)
+                                        .tilt(60.0)
+                                        .build()
+                                ),
+                                1000
+                            )
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .statusBarsPadding()
+                            .padding(top = 76.dp, start = 16.dp)
+                            .background(Color(0xF2181824), shape = CircleShape)
+                            .border(1.dp, Color(0x1AFFFFFF), shape = CircleShape)
+                            .size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MyLocation,
+                            contentDescription = "Locate",
+                            tint = MaterialTheme.colorScheme.primary
                         )
-                    },
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(top = 76.dp, start = 16.dp)
-                        .background(Color(0xF2181824), shape = CircleShape)
-                        .border(1.dp, Color(0x1AFFFFFF), shape = CircleShape)
-                        .size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MyLocation,
-                        contentDescription = "Locate",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    }
                 }
             }
         }

@@ -1,8 +1,10 @@
 package com.rajpawardotin.dekhreekh.presentation.dashboard
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,11 +18,14 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -34,6 +39,10 @@ import com.rajpawardotin.dekhreekh.presentation.tracking.TrackingMap
 import com.rajpawardotin.dekhreekh.domain.models.TelemetryData
 import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
+import io.github.raj.liquid.rememberLiquidState
+import io.github.raj.liquid.liquefiable
+import io.github.raj.liquid.molecules.LiquidGlassCard
+import io.github.raj.liquid.molecules.LiquidButton
 
 @Composable
 fun DashboardScreen(
@@ -45,9 +54,9 @@ fun DashboardScreen(
     onNavigateToVault: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val cyanAccent = MaterialTheme.colorScheme.primary
     val darkBg = MaterialTheme.colorScheme.background
     val glassBg = Color(0xF2181824)
-    val cyanAccent = MaterialTheme.colorScheme.primary // Maps to Volt Green
     val purpleAccent = MaterialTheme.colorScheme.secondary // Maps to Steel Gray
     val activeRed = Color(0xFFFF3B30)
 
@@ -59,6 +68,8 @@ fun DashboardScreen(
             drawerState.close()
         }
     }
+
+    val liquidState = rememberLiquidState()
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -158,6 +169,7 @@ fun DashboardScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
+                            .liquefiable(liquidState)
                             .drawWithContent {
                                 drawContent() // Draw map first
                                 
@@ -178,39 +190,70 @@ fun DashboardScreen(
                                         endY = size.height
                                     )
                                 )
+
+                                // Draw radial glow under bottom control panel card for liquid glass refraction
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(cyanAccent.copy(alpha = 0.22f), Color.Transparent),
+                                        center = Offset(size.width / 2f, size.height - 120.dp.toPx()),
+                                        radius = 220.dp.toPx()
+                                    ),
+                                    center = Offset(size.width / 2f, size.height - 120.dp.toPx()),
+                                    radius = 220.dp.toPx()
+                                )
                             }
                     ) {
                         TrackingMap(
                             pathPoints = livePath,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            liquidState = liquidState
                         )
                     }
                 } else {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
+                            .liquefiable(liquidState)
                             .background(darkBg)
+                            .drawBehind {
+                                // Draw radial glow under permission prompt card for liquid glass refraction
+                                drawCircle(
+                                    brush = Brush.radialGradient(
+                                        colors = listOf(cyanAccent.copy(alpha = 0.2f), Color.Transparent),
+                                        center = Offset(size.width / 2f, size.height - 150.dp.toPx()),
+                                        radius = 220.dp.toPx()
+                                    ),
+                                    center = Offset(size.width / 2f, size.height - 150.dp.toPx()),
+                                    radius = 220.dp.toPx()
+                                )
+                            }
                     )
                 }
 
                 // 2. Floating Hamburger Menu Icon (Top-Left)
                 if (hasLocationPermission) {
-                    IconButton(
-                        onClick = {
-                            scope.launch { drawerState.open() }
-                        },
+                    LiquidGlassCard(
+                        liquidState = liquidState,
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(0.dp),
                         modifier = Modifier
                             .statusBarsPadding()
                             .padding(top = 16.dp, start = 16.dp)
-                            .background(glassBg, shape = CircleShape)
-                            .border(1.dp, Color(0x1AFFFFFF), shape = CircleShape)
                             .size(48.dp)
+                            .clickable {
+                                scope.launch { drawerState.open() }
+                            }
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menu",
-                            tint = cyanAccent
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Menu",
+                                tint = cyanAccent
+                            )
+                        }
                     }
                 }
 
@@ -225,14 +268,13 @@ fun DashboardScreen(
                 ) {
                     if (!hasLocationPermission) {
                         // Permission Prompt Card
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = glassBg),
-                            border = BorderStroke(1.dp, Color(0x1AFFFFFF)),
+                        LiquidGlassCard(
+                            liquidState = liquidState,
                             shape = RoundedCornerShape(24.dp),
+                            contentPadding = PaddingValues(24.dp),
                             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
@@ -250,26 +292,25 @@ fun DashboardScreen(
                                     textAlign = TextAlign.Center
                                 )
                                 Spacer(modifier = Modifier.height(20.dp))
-                                Button(
+                                LiquidButton(
                                     onClick = onRequestPermission,
-                                    colors = ButtonDefaults.buttonColors(containerColor = cyanAccent, contentColor = Color.Black),
+                                    liquidState = liquidState,
                                     shape = RoundedCornerShape(14.dp),
                                     modifier = Modifier.fillMaxWidth().height(48.dp)
                                 ) {
-                                    Text("GRANT ACCESS", fontWeight = FontWeight.Bold)
+                                    Text("GRANT ACCESS", fontWeight = FontWeight.Bold, color = cyanAccent)
                                 }
                             }
                         }
                     } else {
                         // Main Bottom Glassmorphism Control Panel
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = glassBg),
-                            border = BorderStroke(1.dp, Color(0x1AFFFFFF)),
+                        LiquidGlassCard(
+                            liquidState = liquidState,
                             shape = RoundedCornerShape(24.dp),
+                            contentPadding = PaddingValues(20.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(
-                                modifier = Modifier.padding(20.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 when (uiState) {
@@ -283,20 +324,20 @@ fun DashboardScreen(
                                             letterSpacing = 1.5.sp
                                         )
                                         Spacer(modifier = Modifier.height(16.dp))
-                                        Button(
+                                        LiquidButton(
                                             onClick = { onIntent(TrackingIntent.IgniteEngine) },
-                                            colors = ButtonDefaults.buttonColors(containerColor = cyanAccent, contentColor = Color.Black),
+                                            liquidState = liquidState,
                                             shape = RoundedCornerShape(28.dp),
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .height(56.dp)
-                                                .clip(RoundedCornerShape(28.dp))
                                         ) {
                                             Text(
                                                 text = "START", 
                                                 fontWeight = FontWeight.Black, 
                                                 letterSpacing = 2.sp, 
-                                                fontSize = 16.sp
+                                                fontSize = 16.sp,
+                                                color = cyanAccent
                                             )
                                         }
                                     }
@@ -377,20 +418,20 @@ fun DashboardScreen(
                                         Spacer(modifier = Modifier.height(20.dp))
 
                                         // Stop Button: Solid red with bold white text
-                                        Button(
+                                        LiquidButton(
                                             onClick = { onIntent(TrackingIntent.HaltEngine) },
-                                            colors = ButtonDefaults.buttonColors(containerColor = activeRed, contentColor = Color.White),
+                                            liquidState = liquidState,
                                             shape = RoundedCornerShape(28.dp),
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .height(56.dp)
-                                                .clip(RoundedCornerShape(28.dp))
                                         ) {
                                             Text(
                                                 text = "STOP", 
                                                 fontWeight = FontWeight.Black, 
                                                 letterSpacing = 2.sp, 
-                                                fontSize = 16.sp
+                                                fontSize = 16.sp,
+                                                color = activeRed
                                             )
                                         }
                                     }
