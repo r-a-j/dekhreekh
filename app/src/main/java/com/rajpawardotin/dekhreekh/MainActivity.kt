@@ -14,7 +14,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            DekhreekhTheme {
+            DekhreekhTheme(dynamicColor = false) {
                 val navController = rememberNavController()
                 AppNavigation(navController = navController)
             }

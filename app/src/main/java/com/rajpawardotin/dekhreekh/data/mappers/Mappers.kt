@@ -5,6 +5,8 @@ import com.rajpawardotin.dekhreekh.data.local.entity.TelemetryEntity
 import com.rajpawardotin.dekhreekh.domain.models.TelemetryData
 import com.rajpawardotin.dekhreekh.domain.models.WorkoutSession
 
+private const val LOW_ACTIVITY_THRESHOLD_METERS = 5f
+
 fun SessionEntity.toDomain(): WorkoutSession {
     return WorkoutSession(
         id = id,
@@ -13,7 +15,10 @@ fun SessionEntity.toDomain(): WorkoutSession {
         activityType = activityType,
         totalDistanceMeters = totalDistanceMeters,
         totalDurationSeconds = totalDurationSeconds,
-        averagePace = averagePace
+        averagePace = averagePace,
+        name = name,
+        tags = if (tags.isBlank()) emptyList() else tags.split(",").map { it.trim() }.filter { it.isNotEmpty() },
+        isLowActivity = isLowActivity
     )
 }
 
@@ -29,6 +34,14 @@ fun TelemetryEntity.toDomain(): TelemetryData {
 }
 
 fun WorkoutSession.toEntity(): SessionEntity {
+    val finalTags = if (totalDistanceMeters < LOW_ACTIVITY_THRESHOLD_METERS) {
+        val list = tags.toMutableList()
+        if ("glitch" !in list) list.add("glitch")
+        if ("bogus" !in list) list.add("bogus")
+        list
+    } else {
+        tags
+    }
     return SessionEntity(
         id = id,
         startTime = startTime,
@@ -36,7 +49,10 @@ fun WorkoutSession.toEntity(): SessionEntity {
         activityType = activityType,
         totalDistanceMeters = totalDistanceMeters,
         totalDurationSeconds = totalDurationSeconds,
-        averagePace = averagePace
+        averagePace = averagePace,
+        name = name,
+        tags = finalTags.joinToString(","),
+        isLowActivity = totalDistanceMeters < LOW_ACTIVITY_THRESHOLD_METERS
     )
 }
 

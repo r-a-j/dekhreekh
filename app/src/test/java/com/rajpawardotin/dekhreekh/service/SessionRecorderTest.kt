@@ -119,4 +119,13 @@ class FakeSessionRepository : SessionRepository {
     override fun getTotalTelemetryCount(): Flow<Int> = flowOf(0)
     override suspend fun getAllTelemetry(): List<TelemetryData> = emptyList()
     override suspend fun wipeAllData() {}
+    override suspend fun importSession(session: WorkoutSession, telemetry: List<TelemetryData>) {
+        sessions.add(session)
+        this.telemetry[session.id] = telemetry.toMutableList()
+    }
+    override suspend fun updateSessionMeta(sessionId: String, name: String?, tags: List<String>) {}
+    override suspend fun deleteSession(sessionId: String) { sessions.removeAll { it.id == sessionId } }
+    override suspend fun getTelemetryForSessionOnce(sessionId: String) = telemetry[sessionId] ?: emptyList()
+    override suspend fun renameTagGlobally(oldTag: String, newTag: String) {}
+    override suspend fun deleteTagGlobally(tag: String) {}
 }

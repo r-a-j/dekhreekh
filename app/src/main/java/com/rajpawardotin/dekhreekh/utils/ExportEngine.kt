@@ -20,36 +20,9 @@ object ExportEngine {
             try {
                 val points = sessionRepository.getAllTelemetry()
                 if (points.isEmpty()) return@withContext false
-
-                // Open the file stream provided by the Android Storage Access Framework
                 context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                     OutputStreamWriter(outputStream).use { writer ->
-                        
-                        // GPX Standard XML Header
-                        writer.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-                        writer.write("<gpx version=\"1.1\" creator=\"Dekhreekh Telemetry Engine\">\n")
-                        writer.write("  <trk>\n")
-                        writer.write("    <name>Dekhreekh Flagship Export</name>\n")
-                        writer.write("    <trkseg>\n")
-
-                        // GPX requires strictly formatted ISO-8601 timestamps (e.g., 2026-05-14T15:30:00Z)
-                        val timeFormatter = DateTimeFormatter.ISO_INSTANT
-
-                        // Stream the points into XML nodes
-                        points.forEach { point ->
-                            val timeString = timeFormatter.format(Instant.ofEpochMilli(point.timestamp))
-                            
-                            writer.write("      <trkpt lat=\"${point.latitude}\" lon=\"${point.longitude}\">\n")
-                            writer.write("        <ele>${point.altitude}</ele>\n")
-                            writer.write("        <time>${timeString}</time>\n")
-                            // Optional: You can inject your custom speed/accuracy data as extensions here if you want
-                            writer.write("      </trkpt>\n")
-                        }
-
-                        // Close the XML structure
-                        writer.write("    </trkseg>\n")
-                        writer.write("  </trk>\n")
-                        writer.write("</gpx>\n")
+                        writeGpxPoints(writer, "Dekhreekh Flagship Export", points)
                     }
                 }
                 true
@@ -58,5 +31,51 @@ object ExportEngine {
                 false
             }
         }
+    }
+
+    /**
+     * Exports a single session's telemetry to GPX, using the session name as the track name.
+     */
+    suspend fun exportSessionToGpx(
+        context: Context,
+        uri: Uri,
+        sessionId: String,
+        sessionName: String?,
+        sessionRepository: SessionRepository
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val points = sessionRepository.getTelemetryForSessionOnce(sessionId)
+                if (points.isEmpty()) return@withContext false
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    OutputStreamWriter(outputStream).use { writer ->
+                        writeGpxPoints(writer, sessionName ?: "Session $sessionId", points)
+                    }
+                }
+                true
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+        }
+    }
+
+    private fun writeGpxPoints(writer: OutputStreamWriter, trackName: String, points: List<com.rajpawardotin.dekhreekh.domain.models.TelemetryData>) {
+        val timeFormatter = DateTimeFormatter.ISO_INSTANT
+        writer.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+        writer.write("<gpx version=\"1.1\" creator=\"Dekhreekh Telemetry Engine\">\n")
+        writer.write("  <trk>\n")
+        writer.write("    <name>$trackName</name>\n")
+        writer.write("    <trkseg>\n")
+        points.forEach { point ->
+            val timeString = timeFormatter.format(Instant.ofEpochMilli(point.timestamp))
+            writer.write("      <trkpt lat=\"${point.latitude}\" lon=\"${point.longitude}\">\n")
+            writer.write("        <ele>${point.altitude}</ele>\n")
+            writer.write("        <time>${timeString}</time>\n")
+            writer.write("      </trkpt>\n")
+        }
+        writer.write("    </trkseg>\n")
+        writer.write("  </trk>\n")
+        writer.write("</gpx>\n")
     }
 }

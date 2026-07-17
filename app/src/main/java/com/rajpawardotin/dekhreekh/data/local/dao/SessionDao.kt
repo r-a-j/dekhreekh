@@ -27,6 +27,15 @@ interface SessionDao {
     @Query("SELECT * FROM workout_sessions WHERE id = :sessionId")
     suspend fun getSessionById(sessionId: String): SessionEntity?
 
+    @Query("DELETE FROM workout_sessions WHERE id = :sessionId")
+    suspend fun deleteById(sessionId: String)
+
+    @Query("UPDATE workout_sessions SET name = :name, tags = :tags WHERE id = :sessionId")
+    suspend fun updateMeta(sessionId: String, name: String?, tags: String)
+
     @Query("DELETE FROM workout_sessions")
     suspend fun deleteAllSessions()
+
+    @Query("SELECT * FROM workout_sessions")
+    suspend fun getAllSessionsOnce(): List<SessionEntity>
 }

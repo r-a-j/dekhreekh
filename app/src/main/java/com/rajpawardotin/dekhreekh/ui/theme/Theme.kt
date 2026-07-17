@@ -14,38 +14,51 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+import androidx.compose.ui.graphics.Color
+
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Color(0xFFD4FF00),      // Premium Volt Green
+    secondary = Color(0xFF8E8E93),    // Steel Gray
+    tertiary = Color(0xFFF3F4F6),     // Ice White
+    background = Color(0xFF0A0A0F),   // Pure Void Black
+    surface = Color(0xFF181824),      // Charcoal Slate
+    onPrimary = Color(0xFF000000),    // Black on Volt
+    onSecondary = Color(0xFFFFFFFF),
+    onTertiary = Color(0xFF000000),
+    onBackground = Color(0xFFFFFFFF),
+    onSurface = Color(0xFFF3F4F6)
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+private val LightColorScheme = darkColorScheme( // Force dark theme everywhere for premium dashboard vibe
+    primary = Color(0xFFD4FF00),
+    secondary = Color(0xFF8E8E93),
+    tertiary = Color(0xFFF3F4F6),
+    background = Color(0xFF0A0A0F),
+    surface = Color(0xFF181824),
+    onPrimary = Color(0xFF000000),
+    onSecondary = Color(0xFFFFFFFF),
+    onTertiary = Color(0xFF000000),
+    onBackground = Color(0xFFFFFFFF),
+    onSurface = Color(0xFFF3F4F6)
 )
 
 @Composable
 fun DekhreekhTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Set default dynamicColor to false to use custom premium styling
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
     
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            window.navigationBarColor = android.graphics.Color.TRANSPARENT
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = false // Dark style -> Light icons
+            insetsController.isAppearanceLightNavigationBars = false
         }
     }
 

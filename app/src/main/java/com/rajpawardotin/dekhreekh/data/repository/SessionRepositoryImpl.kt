@@ -36,11 +36,22 @@ class SessionRepositoryImpl(
     ) {
         val session = sessionDao.getSessionById(sessionId)
         session?.let {
+            val tagsList = if (it.tags.isBlank()) emptyList() else it.tags.split(",").map { t -> t.trim() }.filter { t -> t.isNotEmpty() }
+            val finalTags = if (totalDistanceMeters < 5f) {
+                val list = tagsList.toMutableList()
+                if ("glitch" !in list) list.add("glitch")
+                if ("bogus" !in list) list.add("bogus")
+                list.joinToString(",")
+            } else {
+                it.tags
+            }
             val updatedSession = it.copy(
                 endTime = System.currentTimeMillis(),
                 totalDistanceMeters = totalDistanceMeters,
                 totalDurationSeconds = totalDurationSeconds,
-                averagePace = averagePace
+                averagePace = averagePace,
+                isLowActivity = totalDistanceMeters < 5f,
+                tags = finalTags
             )
             sessionDao.updateSession(updatedSession)
         }
@@ -72,5 +83,46 @@ class SessionRepositoryImpl(
 
     override suspend fun wipeAllData() {
         sessionDao.deleteAllSessions() // This cascades to telemetry
+    }
+
+    override suspend fun importSession(session: WorkoutSession, telemetry: List<TelemetryData>) {
+        sessionDao.insertSession(session.toEntity())
+        telemetryDao.insertPoints(telemetry.map { it.toEntity(session.id) })
+    }
+
+    override suspend fun updateSessionMeta(sessionId: String, name: String?, tags: List<String>) {
+        sessionDao.updateMeta(sessionId, name, tags.joinToString(","))
+    }
+
+    override suspend fun deleteSession(sessionId: String) {
+        sessionDao.deleteById(sessionId) // Cascade FK removes telemetry automatically
+    }
+
+    override suspend fun getTelemetryForSessionOnce(sessionId: String): List<TelemetryData> {
+        return telemetryDao.getPointsForSession(sessionId).map { it.toDomain() }
+    }
+
+    override suspend fun renameTagGlobally(oldTag: String, newTag: String) {
+        val sessions = sessionDao.getAllSessionsOnce()
+        sessions.forEach { entity ->
+            val tagsList = if (entity.tags.isBlank()) emptyList() else entity.tags.split(",").map { it.trim() }
+            if (oldTag in tagsList) {
+                val updatedList = tagsList.map { if (it == oldTag) newTag else it }.distinct().filter { it.isNotBlank() }
+                val updatedEntity = entity.copy(tags = updatedList.joinToString(","))
+                sessionDao.updateSession(updatedEntity)
+            }
+        }
+    }
+
+    override suspend fun deleteTagGlobally(tag: String) {
+        val sessions = sessionDao.getAllSessionsOnce()
+        sessions.forEach { entity ->
+            val tagsList = if (entity.tags.isBlank()) emptyList() else entity.tags.split(",").map { it.trim() }
+            if (tag in tagsList) {
+                val updatedList = tagsList.filter { it != tag }
+                val updatedEntity = entity.copy(tags = updatedList.joinToString(","))
+                sessionDao.updateSession(updatedEntity)
+            }
+        }
     }
 }

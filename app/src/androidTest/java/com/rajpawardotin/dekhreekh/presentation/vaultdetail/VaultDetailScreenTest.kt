@@ -30,16 +30,26 @@ class VaultDetailScreenTest {
         }
 
         composeTestRule.onNodeWithTag("TrackingMapContainer").assertIsDisplayed()
-        // If maps-compose manages the polyline via composition it might be found, or we rely on the container test
-        // However, we assert the container is definitely present.
+    }
+
+    @Test
+    fun `VaultDetailScreen renders timeline slider when telemetry has multiple points`() {
+        val now = System.currentTimeMillis()
+        val mockData = listOf(
+            TelemetryData(37.7749, -122.4194, 10.0, 5.0f, 3.5f, now),
+            TelemetryData(37.7750, -122.4195, 12.0, 5.0f, 4.0f, now + 5000),
+            TelemetryData(37.7751, -122.4196, 14.0, 5.0f, 4.5f, now + 10000)
+        )
+
+        composeTestRule.setContent {
+            VaultDetailScreen(
+                telemetryPath = mockData
+            )
+        }
+
+        composeTestRule.onNodeWithTag("TimelineSlider").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("DetailMetricsCard").assertIsDisplayed()
     }
 }
 
-// ---------------------------------------------------------
-// Barebones implementation to make tests compile
-// ---------------------------------------------------------
 
-@Composable
-fun VaultDetailScreen(telemetryPath: List<TelemetryData>) {
-    // Empty implementation
-}

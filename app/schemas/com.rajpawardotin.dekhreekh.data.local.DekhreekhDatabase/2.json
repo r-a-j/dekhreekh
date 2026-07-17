@@ -1,0 +1,64 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4",
+    "entities": [
+      {
+        "tableName": "workout_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `workout_sessions` (`id` TEXT NOT NULL, `startTime` INTEGER NOT NULL, `endTime` INTEGER, `activityType` TEXT NOT NULL, `totalDistanceMeters` REAL NOT NULL, `totalDurationSeconds` INTEGER NOT NULL, `averagePace` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {"fieldPath": "id", "columnName": "id", "affinity": "TEXT", "notNull": true},
+          {"fieldPath": "startTime", "columnName": "startTime", "affinity": "INTEGER", "notNull": true},
+          {"fieldPath": "endTime", "columnName": "endTime", "affinity": "INTEGER", "notNull": false},
+          {"fieldPath": "activityType", "columnName": "activityType", "affinity": "TEXT", "notNull": true},
+          {"fieldPath": "totalDistanceMeters", "columnName": "totalDistanceMeters", "affinity": "REAL", "notNull": true},
+          {"fieldPath": "totalDurationSeconds", "columnName": "totalDurationSeconds", "affinity": "INTEGER", "notNull": true},
+          {"fieldPath": "averagePace", "columnName": "averagePace", "affinity": "INTEGER", "notNull": true}
+        ],
+        "primaryKey": {"columnNames": ["id"], "autoGenerate": false},
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "raw_telemetry",
+        "createSql": "CREATE TABLE IF NOT EXISTS `raw_telemetry` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `altitude` REAL NOT NULL, `accuracy` REAL NOT NULL, `speed` REAL NOT NULL, `sensorDataJson` TEXT, FOREIGN KEY(`sessionId`) REFERENCES `workout_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {"fieldPath": "id", "columnName": "id", "affinity": "INTEGER", "notNull": true},
+          {"fieldPath": "sessionId", "columnName": "sessionId", "affinity": "TEXT", "notNull": true},
+          {"fieldPath": "timestamp", "columnName": "timestamp", "affinity": "INTEGER", "notNull": true},
+          {"fieldPath": "latitude", "columnName": "latitude", "affinity": "REAL", "notNull": true},
+          {"fieldPath": "longitude", "columnName": "longitude", "affinity": "REAL", "notNull": true},
+          {"fieldPath": "altitude", "columnName": "altitude", "affinity": "REAL", "notNull": true},
+          {"fieldPath": "accuracy", "columnName": "accuracy", "affinity": "REAL", "notNull": true},
+          {"fieldPath": "speed", "columnName": "speed", "affinity": "REAL", "notNull": true},
+          {"fieldPath": "sensorDataJson", "columnName": "sensorDataJson", "affinity": "TEXT", "notNull": false}
+        ],
+        "primaryKey": {"columnNames": ["id"], "autoGenerate": true},
+        "indices": [
+          {
+            "name": "index_raw_telemetry_sessionId",
+            "unique": false,
+            "columnNames": ["sessionId"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_raw_telemetry_sessionId` ON `raw_telemetry` (`sessionId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "workout_sessions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": ["sessionId"],
+            "referencedColumns": ["id"]
+          }
+        ]
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4')"
+    ]
+  }
+}

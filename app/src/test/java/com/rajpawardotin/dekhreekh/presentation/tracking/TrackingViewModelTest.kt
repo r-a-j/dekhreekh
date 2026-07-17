@@ -41,6 +41,12 @@ class TrackingViewModelTest {
             override fun getTotalTelemetryCount(): Flow<Int> = flowOf(0)
             override suspend fun getAllTelemetry(): List<TelemetryData> = emptyList()
             override suspend fun wipeAllData() {}
+            override suspend fun importSession(session: WorkoutSession, telemetry: List<TelemetryData>) {}
+            override suspend fun updateSessionMeta(sessionId: String, name: String?, tags: List<String>) {}
+            override suspend fun deleteSession(sessionId: String) {}
+            override suspend fun getTelemetryForSessionOnce(sessionId: String) = emptyList<TelemetryData>()
+            override suspend fun renameTagGlobally(oldTag: String, newTag: String) {}
+            override suspend fun deleteTagGlobally(tag: String) {}
         }
         
         val fakeRecorder = SessionRecorder(fakeRepo)

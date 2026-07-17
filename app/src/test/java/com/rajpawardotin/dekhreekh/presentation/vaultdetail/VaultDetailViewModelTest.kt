@@ -1,6 +1,7 @@
 package com.rajpawardotin.dekhreekh.presentation.vaultdetail
 
 import com.rajpawardotin.dekhreekh.domain.models.TelemetryData
+import com.rajpawardotin.dekhreekh.domain.models.WorkoutSession
 import com.rajpawardotin.dekhreekh.domain.repository.SessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,6 +52,12 @@ class VaultDetailViewModelTest {
             override fun getTotalTelemetryCount() = flowOf(0)
             override suspend fun getAllTelemetry() = emptyList<TelemetryData>()
             override suspend fun wipeAllData() {}
+            override suspend fun importSession(session: WorkoutSession, telemetry: List<TelemetryData>) {}
+            override suspend fun updateSessionMeta(sessionId: String, name: String?, tags: List<String>) {}
+            override suspend fun deleteSession(sessionId: String) {}
+            override suspend fun getTelemetryForSessionOnce(sessionId: String) = emptyList<TelemetryData>()
+            override suspend fun renameTagGlobally(oldTag: String, newTag: String) {}
+            override suspend fun deleteTagGlobally(tag: String) {}
         }
 
         // We instantiate the ViewModel with a saved state handle or direct param (depending on implementation, here we pass it)
@@ -70,13 +77,4 @@ class VaultDetailViewModelTest {
     }
 }
 
-// ---------------------------------------------------------
-// Barebones implementation to make tests compile
-// ---------------------------------------------------------
 
-class VaultDetailViewModel(
-    val sessionId: String,
-    val repository: SessionRepository
-) {
-    val telemetryPath = kotlinx.coroutines.flow.MutableStateFlow<List<TelemetryData>>(emptyList())
-}

@@ -13,4 +13,10 @@ interface SessionRepository {
     fun getTotalTelemetryCount(): Flow<Int>
     suspend fun getAllTelemetry(): List<TelemetryData>
     suspend fun wipeAllData()
+    suspend fun importSession(session: WorkoutSession, telemetry: List<TelemetryData>)
+    suspend fun updateSessionMeta(sessionId: String, name: String?, tags: List<String>)
+    suspend fun deleteSession(sessionId: String)
+    suspend fun getTelemetryForSessionOnce(sessionId: String): List<TelemetryData>
+    suspend fun renameTagGlobally(oldTag: String, newTag: String)
+    suspend fun deleteTagGlobally(tag: String)
 }

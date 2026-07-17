@@ -6,6 +6,7 @@ import com.rajpawardotin.dekhreekh.domain.repository.SessionRepository
 import com.rajpawardotin.dekhreekh.service.SessionRecorder
 import com.rajpawardotin.dekhreekh.presentation.tracking.TrackingViewModel
 import com.rajpawardotin.dekhreekh.presentation.vault.VaultViewModel
+import com.rajpawardotin.dekhreekh.presentation.vaultdetail.VaultDetailViewModel
 import androidx.room.Room
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -32,4 +33,5 @@ val appModule = module {
     // ViewModels
     viewModel { TrackingViewModel(get(), get()) }
     viewModel { VaultViewModel(get()) }
+    viewModel { params -> VaultDetailViewModel(sessionId = params.get(), repository = get()) }
 }

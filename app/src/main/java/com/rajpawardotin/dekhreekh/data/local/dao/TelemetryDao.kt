@@ -12,6 +12,9 @@ interface TelemetryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPoint(point: TelemetryEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPoints(points: List<TelemetryEntity>)
+
     @Query("SELECT * FROM raw_telemetry WHERE sessionId = :sessionId ORDER BY timestamp ASC")
     fun getTelemetryForSession(sessionId: String): Flow<List<TelemetryEntity>>
 
@@ -20,6 +23,9 @@ interface TelemetryDao {
 
     @Query("SELECT * FROM raw_telemetry ORDER BY timestamp ASC")
     suspend fun getAllPoints(): List<TelemetryEntity>
+
+    @Query("SELECT * FROM raw_telemetry WHERE sessionId = :sessionId ORDER BY timestamp ASC")
+    suspend fun getPointsForSession(sessionId: String): List<TelemetryEntity>
 
     @Query("DELETE FROM raw_telemetry")
     suspend fun wipeDatabase()

@@ -189,20 +189,25 @@ class TrackingService : Service(), KoinComponent {
     }
 
     private fun stopTrackingService() {
+        val wasTracking = isTracking
         // 1. Kill the Hardware Listeners
         stopTimer()
-        fusedLocationClient.removeLocationUpdates(locationCallback)
+        if (::fusedLocationClient.isInitialized) {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+        }
         
         // 2. Tear down the Foreground Notification
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
         
-        serviceScope.launch {
-            sessionRecorder.stopRecording(
-                totalDistanceMeters = distanceMeters.value,
-                totalDurationSeconds = elapsedSeconds.value,
-                averagePace = currentPace.value
-            )
+        if (wasTracking) {
+            serviceScope.launch {
+                sessionRecorder.stopRecording(
+                    totalDistanceMeters = distanceMeters.value,
+                    totalDurationSeconds = elapsedSeconds.value,
+                    averagePace = currentPace.value
+                )
+            }
         }
 
         // 3. Purge the Live State (Ready for the next session)
