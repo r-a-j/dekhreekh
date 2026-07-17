@@ -597,17 +597,37 @@ private fun SessionCard(
     onClick: () -> Unit,
     onLongPress: () -> Unit
 ) {
-    val distKm = String.format("%.2f", session.totalDistanceMeters / 1000f)
-    val durationMin = session.totalDurationSeconds / 60
-    val durationStr = "${durationMin / 60}h ${durationMin % 60}m".let {
-        if (durationMin < 60) "${durationMin}m" else it
+    // Memoize all computed strings — avoid recalculation on every recompose
+    val distKm = remember(session.totalDistanceMeters) {
+        String.format("%.2f", session.totalDistanceMeters / 1000f)
     }
-    val timeStr = Instant.ofEpochMilli(session.startTime)
-         .atZone(ZoneId.systemDefault())
-         .format(DateTimeFormatter.ofPattern("hh:mm a"))
+    val durationMin = session.totalDurationSeconds / 60
+    val durationStr = remember(durationMin) {
+        if (durationMin < 60) "${durationMin}m"
+        else "${durationMin / 60}h ${durationMin % 60}m"
+    }
+    val timeStr = remember(session.startTime) {
+        Instant.ofEpochMilli(session.startTime)
+             .atZone(ZoneId.systemDefault())
+             .format(DateTimeFormatter.ofPattern("hh:mm a"))
+    }
+    // Hoist tokens as a stable remembered object — prevents shader re-init every frame
+    val cardTokens = remember {
+        io.github.raj.liquid.tokens.GlassComponentTokens(
+            refraction = 0.18f,
+            curve = 1.00f,
+            frost = 9.94.dp,
+            dispersion = 0.16f,
+            edge = 0.0f,
+            tintAlpha = 0.00f,
+            saturation = 1.65f,
+            contrast = 1.65f
+        )
+    }
 
     io.github.raj.liquid.molecules.LiquidGlassCard(
         liquidState = liquidState,
+        tokens = cardTokens,
         shape = RoundedCornerShape(16.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
         modifier = Modifier
@@ -663,8 +683,13 @@ private fun SessionCard(
 
             if (session.tags.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    items(session.tags) { tag ->
+                // Use simple Row/wrap instead of nested LazyRow to avoid
+                // nested lazy layout performance issues during scroll
+                androidx.compose.foundation.layout.FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    session.tags.forEach { tag ->
                         Box(
                             modifier = Modifier
                                 .background(Color(0x33FFFFFF), RoundedCornerShape(8.dp))

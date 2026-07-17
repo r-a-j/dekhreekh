@@ -278,6 +278,16 @@ fun DashboardScreen(
                             liquidState = liquidState,
                             shape = RoundedCornerShape(24.dp),
                             contentPadding = PaddingValues(24.dp),
+                            tokens = io.github.raj.liquid.tokens.GlassComponentTokens(
+                                refraction = 0.18f,
+                                curve = 1.00f,
+                                frost = 9.94.dp,
+                                dispersion = 0.16f,
+                                edge = 0.0f,
+                                tintAlpha = 0.00f,
+                                saturation = 1.65f,
+                                contrast = 1.65f
+                            ),
                             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
                         ) {
                             Column(
@@ -314,6 +324,16 @@ fun DashboardScreen(
                             liquidState = liquidState,
                             shape = RoundedCornerShape(24.dp),
                             contentPadding = PaddingValues(20.dp),
+                            tokens = io.github.raj.liquid.tokens.GlassComponentTokens(
+                                refraction = 0.18f,
+                                curve = 1.00f,
+                                frost = 9.94.dp,
+                                dispersion = 0.16f,
+                                edge = 0.0f,
+                                tintAlpha = 0.00f,
+                                saturation = 1.65f,
+                                contrast = 1.65f
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(

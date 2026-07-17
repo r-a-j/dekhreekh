@@ -36,13 +36,13 @@ import io.github.raj.liquid.rememberLiquidState
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
+    val liquidState = rememberLiquidState()
     NavHost(navController = navController, startDestination = DashboardRoute) {
         composable<DashboardRoute> {
             val viewModel: TrackingViewModel = koinViewModel()
             val uiState by viewModel.uiState.collectAsState()
             val livePath by viewModel.livePath.collectAsState()
             
-            val liquidState = rememberLiquidState()
             val context = androidx.compose.ui.platform.LocalContext.current
             
             // Runtime permissions logic
@@ -257,6 +257,7 @@ fun AppNavigation(navController: NavHostController) {
             com.rajpawardotin.dekhreekh.presentation.vaultdetail.VaultDetailScreen(
                 telemetryPath = telemetryPath,
                 session = session,
+                liquidState = liquidState,
                 onBackClick = { navController.popBackStack() }
             )
         }

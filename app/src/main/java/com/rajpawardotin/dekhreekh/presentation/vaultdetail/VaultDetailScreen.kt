@@ -25,6 +25,9 @@ import androidx.compose.ui.unit.sp
 import com.rajpawardotin.dekhreekh.domain.models.TelemetryData
 import com.rajpawardotin.dekhreekh.domain.models.WorkoutSession
 import com.rajpawardotin.dekhreekh.presentation.tracking.TrackingMap
+import io.github.raj.liquid.liquefiable
+import io.github.raj.liquid.molecules.LiquidGlassCard
+import io.github.raj.liquid.tokens.GlassComponentTokens
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -35,6 +38,7 @@ import kotlin.math.roundToInt
 fun VaultDetailScreen(
     telemetryPath: List<TelemetryData>,
     session: WorkoutSession? = null,
+    liquidState: io.github.raj.liquid.LiquidState,
     onBackClick: () -> Unit = {}
 ) {
     val darkBg = Color(0xFF0D0D14)
@@ -130,17 +134,19 @@ fun VaultDetailScreen(
                 .background(darkBg)
         ) {
             // --- Map Layer ---
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("TrackingMapContainer")
-            ) {
-                TrackingMap(
-                    pathPoints = telemetryPath,
-                    modifier = Modifier.fillMaxSize(),
-                    isStaticHistory = true,
-                    selectedPoint = selectedPoint
-                )
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Map background layer for history path playback
+                if (telemetryPath.isNotEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize().liquefiable(liquidState)) {
+                        TrackingMap(
+                            pathPoints = telemetryPath,
+                            modifier = Modifier.fillMaxSize(),
+                            isStaticHistory = true,
+                            selectedPoint = selectedPoint,
+                            liquidState = liquidState
+                        )
+                    }
+                }
             }
 
             // --- Bottom Panel ---
@@ -153,10 +159,19 @@ fun VaultDetailScreen(
 
                 // --- Timeline Scrubber Card ---
                 if (telemetryPath.size > 1) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = glassBg),
-                        border = BorderStroke(1.dp, Color(0x26FFFFFF)),
+                    LiquidGlassCard(
+                        liquidState = liquidState,
                         shape = RoundedCornerShape(20.dp),
+                        tokens = GlassComponentTokens(
+                            refraction = 0.18f,
+                            curve = 1.00f,
+                            frost = 9.94.dp,
+                            dispersion = 0.16f,
+                            edge = 0.0f,
+                            tintAlpha = 0.00f,
+                            saturation = 1.65f,
+                            contrast = 1.65f
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 10.dp)
@@ -228,10 +243,19 @@ fun VaultDetailScreen(
                 }
 
                 // --- Stat Metrics Card ---
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = glassBg),
-                    border = BorderStroke(1.dp, Color(0x26FFFFFF)),
+                LiquidGlassCard(
+                    liquidState = liquidState,
                     shape = RoundedCornerShape(20.dp),
+                    tokens = GlassComponentTokens(
+                        refraction = 0.18f,
+                        curve = 1.00f,
+                        frost = 9.94.dp,
+                        dispersion = 0.16f,
+                        edge = 0.0f,
+                        tintAlpha = 0.00f,
+                        saturation = 1.65f,
+                        contrast = 1.65f
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("DetailMetricsCard")
