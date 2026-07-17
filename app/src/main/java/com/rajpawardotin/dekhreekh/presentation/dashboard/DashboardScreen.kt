@@ -51,7 +51,9 @@ fun DashboardScreen(
     hasLocationPermission: Boolean,
     onRequestPermission: () -> Unit,
     onIntent: (TrackingIntent) -> Unit,
-    onNavigateToVault: () -> Unit
+    onNavigateToVault: () -> Unit,
+    liquidState: io.github.raj.liquid.LiquidState,
+    isOverlayOpen: Boolean = false
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val cyanAccent = MaterialTheme.colorScheme.primary
@@ -69,7 +71,7 @@ fun DashboardScreen(
         }
     }
 
-    val liquidState = rememberLiquidState()
+    // liquidState is now passed from parent
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -173,40 +175,43 @@ fun DashboardScreen(
                             .drawWithContent {
                                 drawContent() // Draw map first
                                 
-                                // Draw top status bar dark fade gradient
-                                drawRect(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(Color(0xE608080C), Color.Transparent),
-                                        startY = 0f,
-                                        endY = 140.dp.toPx()
+                                if (!isOverlayOpen) {
+                                    // Draw top status bar dark fade gradient
+                                    drawRect(
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(Color(0xE608080C), Color.Transparent),
+                                            startY = 0f,
+                                            endY = 140.dp.toPx()
+                                        )
                                     )
-                                )
 
-                                // Draw bottom navigation bar dark fade gradient
-                                drawRect(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, Color(0xE608080C)),
-                                        startY = size.height - 260.dp.toPx(),
-                                        endY = size.height
+                                    // Draw bottom navigation bar dark fade gradient
+                                    drawRect(
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, Color(0xE608080C)),
+                                            startY = size.height - 260.dp.toPx(),
+                                            endY = size.height
+                                        )
                                     )
-                                )
 
-                                // Draw radial glow under bottom control panel card for liquid glass refraction
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(cyanAccent.copy(alpha = 0.22f), Color.Transparent),
+                                    // Draw radial glow under bottom control panel card for liquid glass refraction
+                                    drawCircle(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(cyanAccent.copy(alpha = 0.22f), Color.Transparent),
+                                            center = Offset(size.width / 2f, size.height - 120.dp.toPx()),
+                                            radius = 220.dp.toPx()
+                                        ),
                                         center = Offset(size.width / 2f, size.height - 120.dp.toPx()),
                                         radius = 220.dp.toPx()
-                                    ),
-                                    center = Offset(size.width / 2f, size.height - 120.dp.toPx()),
-                                    radius = 220.dp.toPx()
-                                )
+                                    )
+                                }
                             }
                     ) {
                         TrackingMap(
                             pathPoints = livePath,
                             modifier = Modifier.fillMaxSize(),
-                            liquidState = liquidState
+                            liquidState = liquidState,
+                            isOverlayOpen = isOverlayOpen
                         )
                     }
                 } else {
@@ -231,7 +236,7 @@ fun DashboardScreen(
                 }
 
                 // 2. Floating Hamburger Menu Icon (Top-Left)
-                if (hasLocationPermission) {
+                if (hasLocationPermission && !isOverlayOpen) {
                     LiquidGlassCard(
                         liquidState = liquidState,
                         shape = CircleShape,
@@ -258,14 +263,15 @@ fun DashboardScreen(
                 }
 
                 // 3. Unified Dashboard Card Panel (Bottom Area)
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .navigationBarsPadding()
-                        .padding(bottom = 24.dp)
-                        .padding(horizontal = 20.dp),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
+                if (!isOverlayOpen) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .navigationBarsPadding()
+                            .padding(bottom = 24.dp)
+                            .padding(horizontal = 20.dp),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
                     if (!hasLocationPermission) {
                         // Permission Prompt Card
                         LiquidGlassCard(
@@ -444,3 +450,5 @@ fun DashboardScreen(
         }
     }
 }
+}
+

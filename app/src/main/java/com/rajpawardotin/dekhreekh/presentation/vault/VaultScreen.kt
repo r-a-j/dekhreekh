@@ -63,13 +63,13 @@ fun VaultScreen(
     onRenameSession: (String, String, List<String>) -> Unit = { _, _, _ -> },
     onDeleteSession: (String) -> Unit = {},
     onRenameTagGlobally: (String, String) -> Unit = { _, _ -> },
-    onDeleteTagGlobally: (String) -> Unit = {}
+    onDeleteTagGlobally: (String) -> Unit = {},
+    liquidState: io.github.raj.liquid.LiquidState
 ) {
     val darkBg = Color(0xFF0D0D14)
     val glassBg = Color(0xEA12121E)
     val voltGreen = Color(0xFFD4FF00)
     val dimText = Color(0xFF6B6B80)
-    val liquidState = rememberLiquidState()
 
     // Action bottom sheet state
     var sheetSession by remember { mutableStateOf<WorkoutSession?>(null) }
@@ -84,7 +84,7 @@ fun VaultScreen(
     val allTags = (uiState as? VaultState.HistoryLoaded)?.allTags ?: emptySet()
 
     Scaffold(
-        containerColor = darkBg,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {
@@ -153,7 +153,7 @@ fun VaultScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = darkBg,
+                    containerColor = Color.Transparent,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -165,21 +165,6 @@ fun VaultScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Sibling 1: The background (liquefiable)
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .liquefiable(liquidState)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF0A0A0F),
-                                Color(0xFF161622)
-                            )
-                        )
-                    )
-            )
-
             // Sibling 2: The content Column
             Column(
                 modifier = Modifier.fillMaxSize()
@@ -621,9 +606,10 @@ private fun SessionCard(
          .atZone(ZoneId.systemDefault())
          .format(DateTimeFormatter.ofPattern("hh:mm a"))
 
-    Card(
+    io.github.raj.liquid.molecules.LiquidGlassCard(
+        liquidState = liquidState,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = glassBg.copy(alpha = 0.6f)),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
         modifier = Modifier
             .fillMaxWidth()
             .testTag("SessionCard_${session.id}")

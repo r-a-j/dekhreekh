@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.testTag
 import android.widget.Toast
 import kotlinx.coroutines.launch
 import com.rajpawardotin.dekhreekh.utils.ImportEngine
+import io.github.raj.liquid.rememberLiquidState
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
@@ -41,6 +42,7 @@ fun AppNavigation(navController: NavHostController) {
             val uiState by viewModel.uiState.collectAsState()
             val livePath by viewModel.livePath.collectAsState()
             
+            val liquidState = rememberLiquidState()
             val context = androidx.compose.ui.platform.LocalContext.current
             
             // Runtime permissions logic
@@ -101,7 +103,9 @@ fun AppNavigation(navController: NavHostController) {
                             context.startService(stopIntent)
                         }
                     },
-                    onNavigateToVault = { showVault = true }
+                    onNavigateToVault = { showVault = true },
+                    liquidState = liquidState,
+                    isOverlayOpen = showVault
                 )
 
                 // Render Vault Screen as an instantaneous overlay on top of Dashboard
@@ -235,7 +239,8 @@ fun AppNavigation(navController: NavHostController) {
                         onRenameSession = { id, name, tags -> vaultViewModel.renameSession(id, name, tags) },
                         onDeleteSession = vaultViewModel::deleteSession,
                         onRenameTagGlobally = vaultViewModel::renameTagGlobally,
-                        onDeleteTagGlobally = vaultViewModel::deleteTagGlobally
+                        onDeleteTagGlobally = vaultViewModel::deleteTagGlobally,
+                        liquidState = liquidState
                     )
                 }
 

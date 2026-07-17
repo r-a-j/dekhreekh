@@ -52,7 +52,8 @@ fun TrackingMap(
     modifier: Modifier = Modifier,
     isStaticHistory: Boolean = false,
     selectedPoint: TelemetryData? = null,
-    liquidState: LiquidState? = null
+    liquidState: LiquidState? = null,
+    isOverlayOpen: Boolean = false
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -266,8 +267,8 @@ fun TrackingMap(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Locate button only shown in live tracking mode
-        if (!isStaticHistory) {
+        // Locate button only shown in live tracking mode and when overlay is not open
+        if (!isStaticHistory && !isOverlayOpen) {
             lastLocationState.value?.let { loc ->
                 if (liquidState != null) {
                     LiquidGlassCard(
