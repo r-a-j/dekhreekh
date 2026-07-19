@@ -2,13 +2,6 @@
 
 **Analysis Date:** 2026-07-17
 
-## Security Considerations
-
-**Background Location Permission Request:**
-- Risk: The app requests `ACCESS_BACKGROUND_LOCATION` which is highly scrutinized by Google Play Console policies and requires explicit user consent disclosures.
-- Files: `app/src/main/AndroidManifest.xml`
-- Recommendation: Ensure a clear disclosure screen is shown to the user before requesting background location access, or evaluate if foreground service location access is sufficient.
-
 ## Performance Bottlenecks
 
 **High-Frequency Telemetry Room Writes:**
