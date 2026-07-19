@@ -75,7 +75,7 @@ object ImportEngine {
                 totalDurationSeconds = totalDurationSeconds,
                 averagePace = averagePace,
                 name = customName?.takeIf { it.isNotBlank() },
-                tags = if (isLow) listOf("glitch", "bogus") else emptyList(),
+                tags = if (isLow) listOf("glitch") else emptyList(),
                 isLowActivity = isLow
             )
 

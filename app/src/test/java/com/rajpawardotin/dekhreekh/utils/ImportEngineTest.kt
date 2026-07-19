@@ -126,7 +126,7 @@ class ImportEngineTest {
     }
 
     @Test
-    fun `importGpxStream sets isLowActivity true and automatically tags with glitch and bogus for tracks with low activity`() = runTest {
+    fun `importGpxStream sets isLowActivity true and automatically tags with glitch for tracks with low activity`() = runTest {
         val tinyGpx = """
             <?xml version="1.0" encoding="UTF-8"?>
             <gpx version="1.1" creator="Dekhreekh Telemetry Engine">
@@ -153,6 +153,5 @@ class ImportEngineTest {
         val session = repo.importedSession!!
         assertTrue("isLowActivity should be true", session.isLowActivity)
         assertTrue("Should contain glitch tag", session.tags.contains("glitch"))
-        assertTrue("Should contain bogus tag", session.tags.contains("bogus"))
     }
 }

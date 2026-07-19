@@ -25,11 +25,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -94,15 +96,6 @@ fun VaultScreen(
                         letterSpacing = 1.5.sp,
                         fontSize = 20.sp
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
                 },
                 actions = {
                     // Sort button
@@ -270,12 +263,19 @@ fun VaultScreen(
                         modifier = Modifier.padding(bottom = 16.dp)
                     ) {
                         items(session.tags) { tag ->
+                            val tagColor = getTagColor(tag)
+                            val isGlitch = tag.equals("glitch", ignoreCase = true)
+                            val bgColor = if (isGlitch) Color(0x26FF3B30) else tagColor.copy(alpha = 0.15f)
+                            val borderColor = if (isGlitch) Color(0x4DFF3B30) else tagColor.copy(alpha = 0.30f)
+                            val textColor = if (isGlitch) Color(0xFFFF3B30) else tagColor
+                            
                             Box(
                                 modifier = Modifier
-                                    .background(Color(0x1AD4FF00), RoundedCornerShape(20.dp))
+                                    .background(bgColor, RoundedCornerShape(20.dp))
+                                    .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(20.dp))
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
-                                Text("#$tag", color = voltGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("#$tag", color = textColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -616,10 +616,10 @@ private fun SessionCard(
         io.github.raj.liquid.tokens.GlassComponentTokens(
             refraction = 0.18f,
             curve = 1.00f,
-            frost = 9.94.dp,
+            frost = 16.dp,
             dispersion = 0.16f,
             edge = 0.0f,
-            tintAlpha = 0.00f,
+            tintAlpha = 0.70f, // Increased obsidian backing opacity for light map style contrast
             saturation = 1.65f,
             contrast = 1.65f
         )
@@ -690,14 +690,25 @@ private fun SessionCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     session.tags.forEach { tag ->
+                        val tagColor = getTagColor(tag)
+                        val isGlitch = tag.equals("glitch", ignoreCase = true)
+                        val bgColor = if (isGlitch) Color(0x26FF3B30) else tagColor.copy(alpha = 0.15f)
+                        val borderColor = if (isGlitch) Color(0x4DFF3B30) else tagColor.copy(alpha = 0.30f)
+                        val textColor = if (isGlitch) Color(0xFFFF3B30) else tagColor
+                        
                         Box(
                             modifier = Modifier
-                                .background(Color(0x33FFFFFF), RoundedCornerShape(8.dp))
-                                .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(8.dp))
+                                .background(bgColor, RoundedCornerShape(8.dp))
+                                .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(8.dp))
                                 .padding(horizontal = 8.dp, vertical = 4.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(text = "#$tag", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                text = "#$tag", 
+                                color = textColor, 
+                                fontSize = 10.sp, 
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
@@ -747,18 +758,85 @@ private fun SheetAction(
 
 @Composable
 private fun EmptyVaultContent(voltGreen: Color, dimText: Color) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Default.Inbox,
-                contentDescription = null,
-                tint = dimText,
-                modifier = Modifier.size(64.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("No sessions yet", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Start a run or import a GPX file", color = dimText, fontSize = 13.sp)
+    val liquidState = io.github.raj.liquid.rememberLiquidState()
+    val cardTokens = remember {
+        io.github.raj.liquid.tokens.GlassComponentTokens(
+            refraction = 0.18f,
+            curve = 1.00f,
+            frost = 16.dp,
+            dispersion = 0.16f,
+            edge = 0.0f,
+            tintAlpha = 0.70f, // Obsidian dark glass opacity
+            saturation = 1.65f,
+            contrast = 1.65f
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .drawBehind {
+                drawRect(
+                    brush = Brush.radialGradient(
+                        colorStops = arrayOf(
+                            0.0f to Color(0xEC040406), // Opaque enough at core (92% opacity) to block map details under icon/header
+                            0.4f to Color(0xD0040406), // Dense mid-cone (81% opacity) extending to card bounds for contrast
+                            0.7f to Color(0x60040406), // Soft transitional dropoff (37% opacity)
+                            1.0f to Color.Transparent  // Fades out fully into map edges
+                        ),
+                        center = center,
+                        radius = size.minDimension * 1.0f
+                    )
+                )
+            }
+            .padding(horizontal = 24.dp), 
+        contentAlignment = Alignment.Center
+    ) {
+        io.github.raj.liquid.molecules.LiquidGlassCard(
+            liquidState = liquidState,
+            tokens = cardTokens,
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.width(300.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Minimalist history icon container
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(Color.White.copy(alpha = 0.05f), CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.6f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = "No Sessions Yet", 
+                    color = Color.White, 
+                    fontWeight = FontWeight.SemiBold, 
+                    fontSize = 16.sp
+                )
+                
+                Spacer(modifier = Modifier.height(6.dp))
+                
+                Text(
+                    text = "Ignite tracking on the dashboard or import a GPX file to display sessions.", 
+                    color = dimText, 
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp
+                )
+            }
         }
     }
 }
@@ -770,6 +848,9 @@ private fun formatTimestamp(epochMs: Long): String {
 }
 
 private fun getTagColor(tag: String): Color {
+    if (tag.equals("glitch", ignoreCase = true)) {
+        return Color(0xFFFF3B30) // Warning alert red for anomaly sessions
+    }
     val hash = tag.hashCode()
     val colors = listOf(
         Color(0xFFB06CFF), // Purple

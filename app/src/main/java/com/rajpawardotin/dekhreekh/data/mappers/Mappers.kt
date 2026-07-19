@@ -37,7 +37,6 @@ fun WorkoutSession.toEntity(): SessionEntity {
     val finalTags = if (totalDistanceMeters < LOW_ACTIVITY_THRESHOLD_METERS) {
         val list = tags.toMutableList()
         if ("glitch" !in list) list.add("glitch")
-        if ("bogus" !in list) list.add("bogus")
         list
     } else {
         tags

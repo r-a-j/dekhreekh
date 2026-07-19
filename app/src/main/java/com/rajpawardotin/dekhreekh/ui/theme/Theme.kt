@@ -63,7 +63,16 @@ fun DekhreekhTheme(
         }
     }
 
-    LiquidGlassTheme {
+    val customLiquidColors = io.github.raj.liquid.tokens.LiquidColorScheme(
+        backgroundTop = Color(0xFF0A0A0F),
+        backgroundBottom = Color(0xFF0A0A0F),
+        accentPrimary = Color(0xFFD4FF00),
+        accentSecondary = Color(0xFF8E8E93),
+        glassTint = Color(0xFF040406), // Premium dark obsidian tint for high-contrast legibility of white text
+        onBackground = Color.White
+    )
+
+    LiquidGlassTheme(colors = customLiquidColors) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,

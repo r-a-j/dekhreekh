@@ -18,6 +18,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -89,7 +91,7 @@ fun VaultDetailScreen(
     val distKmStr = String.format("%.2f", cumulativeDistanceM / 1000f)
 
     Scaffold(
-        containerColor = darkBg,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {
@@ -120,7 +122,7 @@ fun VaultDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = darkBg,
+                    containerColor = Color.Transparent, // Let the top scrim show through
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -130,11 +132,32 @@ fun VaultDetailScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(darkBg)
+                .background(Color.Transparent)
         ) {
-            // --- Map Layer ---
-            Box(modifier = Modifier.fillMaxSize()) {
+            // --- Map Layer with top + bottom gradient scrims ---
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawWithContent {
+                        drawContent() // Draw map first
+                        // Top status bar dark fade gradient (black face)
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color(0xFA0A0A0F), Color.Transparent),
+                                startY = 0f,
+                                endY = 160.dp.toPx()
+                            )
+                        )
+                        // Bottom navigation bar dark fade gradient (black face)
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color(0xFA0A0A0F)),
+                                startY = this.size.height - 380.dp.toPx(),
+                                endY = this.size.height
+                            )
+                        )
+                    }
+            ) {
                 // Map background layer for history path playback
                 if (telemetryPath.isNotEmpty()) {
                     Box(modifier = Modifier.fillMaxSize().liquefiable(liquidState)) {
@@ -153,6 +176,7 @@ fun VaultDetailScreen(
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .navigationBarsPadding() // Protect against bottom navigation bar overlap
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
@@ -165,10 +189,10 @@ fun VaultDetailScreen(
                         tokens = GlassComponentTokens(
                             refraction = 0.18f,
                             curve = 1.00f,
-                            frost = 9.94.dp,
+                            frost = 16.dp,
                             dispersion = 0.16f,
                             edge = 0.0f,
-                            tintAlpha = 0.00f,
+                            tintAlpha = 0.70f, // Increased obsidian backing opacity for light map style contrast
                             saturation = 1.65f,
                             contrast = 1.65f
                         ),
@@ -249,10 +273,10 @@ fun VaultDetailScreen(
                     tokens = GlassComponentTokens(
                         refraction = 0.18f,
                         curve = 1.00f,
-                        frost = 9.94.dp,
+                        frost = 16.dp,
                         dispersion = 0.16f,
                         edge = 0.0f,
-                        tintAlpha = 0.00f,
+                        tintAlpha = 0.70f, // Increased obsidian backing opacity for light map style contrast
                         saturation = 1.65f,
                         contrast = 1.65f
                     ),

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,9 +52,9 @@ fun DashboardScreen(
     hasLocationPermission: Boolean,
     onRequestPermission: () -> Unit,
     onIntent: (TrackingIntent) -> Unit,
-    onNavigateToVault: () -> Unit,
     liquidState: io.github.raj.liquid.LiquidState,
-    isOverlayOpen: Boolean = false
+    isOverlayOpen: Boolean = false,
+    locateTrigger: Int = 0
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val cyanAccent = MaterialTheme.colorScheme.primary
@@ -62,107 +63,9 @@ fun DashboardScreen(
     val purpleAccent = MaterialTheme.colorScheme.secondary // Maps to Steel Gray
     val activeRed = Color(0xFFFF3B30)
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
-    BackHandler(enabled = drawerState.isOpen) {
-        scope.launch {
-            drawerState.close()
-        }
-    }
-
-    // liquidState is now passed from parent
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = false, // Disable edge swipe to prevent conflicts with map panning/zooming
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = darkBg,
-                drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
-            ) {
-                Spacer(modifier = Modifier.height(36.dp))
-                Text(
-                    text = "DEKHREEKH",
-                    color = cyanAccent,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 3.sp,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                )
-                HorizontalDivider(color = Color(0x1AFFFFFF), modifier = Modifier.padding(horizontal = 24.dp))
-                Spacer(modifier = Modifier.height(16.dp))
-                // 1. Map Dashboard (Home)
-                NavigationDrawerItem(
-                    label = { Text("Map Dashboard", fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
-                    selected = true,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                    },
-                    colors = NavigationDrawerItemDefaults.colors(
-                        selectedContainerColor = Color(0x1AD4FF00), // Muted Volt Green
-                        selectedTextColor = cyanAccent,
-                        selectedIconColor = cyanAccent
-                    ),
-                    icon = { Icon(imageVector = Icons.Default.Home, contentDescription = "Dashboard") },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 2. History Vault
-                NavigationDrawerItem(
-                    label = { Text("History Vault", fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onNavigateToVault()
-                    },
-                    colors = NavigationDrawerItemDefaults.colors(
-                        unselectedContainerColor = Color.Transparent,
-                        unselectedTextColor = Color.LightGray,
-                        unselectedIconColor = cyanAccent
-                    ),
-                    icon = { Icon(imageVector = Icons.Default.History, contentDescription = "Vault") },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-                HorizontalDivider(color = Color(0x1AFFFFFF), modifier = Modifier.padding(horizontal = 24.dp))
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 3. Exit Application
-                NavigationDrawerItem(
-                    label = { Text("Exit Application", fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp) },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        // Stop telemetry service if active before exiting
-                        if (uiState is TrackingState.Tracking) {
-                            val stopIntent = android.content.Intent(context, com.rajpawardotin.dekhreekh.service.TrackingService::class.java).apply {
-                                action = com.rajpawardotin.dekhreekh.service.TrackingService.ACTION_STOP_TRACKING
-                            }
-                            context.startService(stopIntent)
-                        } else {
-                            val serviceIntent = android.content.Intent(context, com.rajpawardotin.dekhreekh.service.TrackingService::class.java)
-                            context.stopService(serviceIntent)
-                        }
-                        (context as? android.app.Activity)?.finish()
-                    },
-                    colors = NavigationDrawerItemDefaults.colors(
-                        unselectedContainerColor = Color.Transparent,
-                        unselectedTextColor = Color(0xFFFF5252),
-                        unselectedIconColor = Color(0xFFFF5252)
-                    ),
-                    icon = { Icon(imageVector = Icons.Default.ExitToApp, contentDescription = "Exit") },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-            }
-        }
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent
-        ) { innerPadding ->
+    Scaffold(
+        containerColor = Color.Transparent
+    ) { innerPadding ->
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -175,34 +78,34 @@ fun DashboardScreen(
                             .drawWithContent {
                                 drawContent() // Draw map first
                                 
+                                // Always draw top status bar dark fade gradient (black face) for status bar readability
+                                drawRect(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(Color(0xFA0A0A0F), Color.Transparent),
+                                        startY = 0f,
+                                        endY = 160.dp.toPx()
+                                    )
+                                )
+
+                                // Always draw bottom navigation bar dark fade gradient (black face) for card background contrast
+                                drawRect(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(Color.Transparent, Color(0xFA0A0A0F)),
+                                        startY = this.size.height - 380.dp.toPx(),
+                                        endY = this.size.height
+                                    )
+                                )
+
                                 if (!isOverlayOpen) {
-                                    // Draw top status bar dark fade gradient
-                                    drawRect(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(Color(0xE608080C), Color.Transparent),
-                                            startY = 0f,
-                                            endY = 140.dp.toPx()
-                                        )
-                                    )
-
-                                    // Draw bottom navigation bar dark fade gradient
-                                    drawRect(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(Color.Transparent, Color(0xE608080C)),
-                                            startY = size.height - 260.dp.toPx(),
-                                            endY = size.height
-                                        )
-                                    )
-
-                                    // Draw radial glow under bottom control panel card for liquid glass refraction
+                                    // Draw radial glow under bottom control panel card (aligned to new 96dp bottom offset)
                                     drawCircle(
                                         brush = Brush.radialGradient(
-                                            colors = listOf(cyanAccent.copy(alpha = 0.22f), Color.Transparent),
-                                            center = Offset(size.width / 2f, size.height - 120.dp.toPx()),
-                                            radius = 220.dp.toPx()
+                                            colors = listOf(cyanAccent.copy(alpha = 0.15f), Color.Transparent),
+                                            center = Offset(this.size.width / 2f, this.size.height - 185.dp.toPx()),
+                                            radius = 260.dp.toPx()
                                         ),
-                                        center = Offset(size.width / 2f, size.height - 120.dp.toPx()),
-                                        radius = 220.dp.toPx()
+                                        center = Offset(this.size.width / 2f, this.size.height - 185.dp.toPx()),
+                                        radius = 260.dp.toPx()
                                     )
                                 }
                             }
@@ -211,7 +114,8 @@ fun DashboardScreen(
                             pathPoints = livePath,
                             modifier = Modifier.fillMaxSize(),
                             liquidState = liquidState,
-                            isOverlayOpen = isOverlayOpen
+                            isOverlayOpen = isOverlayOpen,
+                            locateTrigger = locateTrigger
                         )
                     }
                 } else {
@@ -221,54 +125,27 @@ fun DashboardScreen(
                             .liquefiable(liquidState)
                             .background(darkBg)
                             .drawBehind {
-                                // Draw radial glow under permission prompt card for liquid glass refraction
+                                // Draw radial glow under permission prompt card (aligned to new 96dp bottom offset)
                                 drawCircle(
                                     brush = Brush.radialGradient(
                                         colors = listOf(cyanAccent.copy(alpha = 0.2f), Color.Transparent),
-                                        center = Offset(size.width / 2f, size.height - 150.dp.toPx()),
+                                        center = Offset(size.width / 2f, size.height - 215.dp.toPx()),
                                         radius = 220.dp.toPx()
                                     ),
-                                    center = Offset(size.width / 2f, size.height - 150.dp.toPx()),
+                                    center = Offset(size.width / 2f, size.height - 215.dp.toPx()),
                                     radius = 220.dp.toPx()
                                 )
                             }
                     )
                 }
 
-                // 2. Floating Hamburger Menu Icon (Top-Left)
-                if (hasLocationPermission && !isOverlayOpen) {
-                    LiquidGlassCard(
-                        liquidState = liquidState,
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier
-                            .statusBarsPadding()
-                            .padding(top = 16.dp, start = 16.dp)
-                            .size(48.dp)
-                            .clickable {
-                                scope.launch { drawerState.open() }
-                            }
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Menu",
-                                tint = cyanAccent
-                            )
-                        }
-                    }
-                }
-
-                // 3. Unified Dashboard Card Panel (Bottom Area)
+                // 3. Unified Dashboard Card Panel (Bottom Area - shifted up by 96dp for dock)
                 if (!isOverlayOpen) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .navigationBarsPadding()
-                            .padding(bottom = 24.dp)
+                            .padding(bottom = 96.dp)
                             .padding(horizontal = 20.dp),
                         contentAlignment = Alignment.BottomCenter
                     ) {
@@ -281,10 +158,10 @@ fun DashboardScreen(
                             tokens = io.github.raj.liquid.tokens.GlassComponentTokens(
                                 refraction = 0.18f,
                                 curve = 1.00f,
-                                frost = 9.94.dp,
+                                frost = 16.dp,
                                 dispersion = 0.16f,
                                 edge = 0.0f,
-                                tintAlpha = 0.00f,
+                                tintAlpha = 0.70f, // Increased obsidian backing opacity for light map style contrast
                                 saturation = 1.65f,
                                 contrast = 1.65f
                             ),
@@ -325,14 +202,14 @@ fun DashboardScreen(
                             shape = RoundedCornerShape(24.dp),
                             contentPadding = PaddingValues(20.dp),
                             tokens = io.github.raj.liquid.tokens.GlassComponentTokens(
-                                refraction = 0.18f,
+                                refraction = 0.19f,
                                 curve = 1.00f,
-                                frost = 9.94.dp,
-                                dispersion = 0.16f,
+                                frost = 8.00.dp,
+                                dispersion = 1.00f,
                                 edge = 0.0f,
-                                tintAlpha = 0.00f,
+                                tintAlpha = 0.70f, // Increased obsidian backing opacity for light map style contrast
                                 saturation = 1.65f,
-                                contrast = 1.65f
+                                contrast = 2.00f
                             ),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -345,8 +222,8 @@ fun DashboardScreen(
                                         Text(
                                             text = "STANDBY MODE",
                                             color = Color.Gray,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.ExtraBold,
                                             letterSpacing = 1.5.sp
                                         )
                                         Spacer(modifier = Modifier.height(16.dp))
@@ -443,21 +320,30 @@ fun DashboardScreen(
 
                                         Spacer(modifier = Modifier.height(20.dp))
 
-                                        // Stop Button: Solid red with bold white text
+                                        // Stop Button: Solid red with bold stop icon and custom glass tokens
                                         LiquidButton(
                                             onClick = { onIntent(TrackingIntent.HaltEngine) },
                                             liquidState = liquidState,
                                             shape = RoundedCornerShape(28.dp),
+                                            tokens = io.github.raj.liquid.tokens.GlassComponentTokens(
+                                                refraction = 0.18f,
+                                                curve = 1.00f,
+                                                frost = 8.dp,
+                                                dispersion = 0.16f,
+                                                edge = 0.0f,
+                                                tintAlpha = 0.00f, // Darker glass tint under button to mute background green
+                                                saturation = 1.65f,
+                                                contrast = 1.65f
+                                            ),
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .height(56.dp)
                                         ) {
-                                            Text(
-                                                text = "STOP", 
-                                                fontWeight = FontWeight.Black, 
-                                                letterSpacing = 2.sp, 
-                                                fontSize = 16.sp,
-                                                color = activeRed
+                                            Icon(
+                                                imageVector = Icons.Default.Stop,
+                                                contentDescription = "Stop",
+                                                tint = Color(0xFFFF3B30), // System red
+                                                modifier = Modifier.size(28.dp)
                                             )
                                         }
                                     }
@@ -469,6 +355,5 @@ fun DashboardScreen(
             }
         }
     }
-}
 }
 

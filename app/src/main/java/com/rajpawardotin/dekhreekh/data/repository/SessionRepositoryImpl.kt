@@ -40,7 +40,6 @@ class SessionRepositoryImpl(
             val finalTags = if (totalDistanceMeters < 5f) {
                 val list = tagsList.toMutableList()
                 if ("glitch" !in list) list.add("glitch")
-                if ("bogus" !in list) list.add("bogus")
                 list.joinToString(",")
             } else {
                 it.tags

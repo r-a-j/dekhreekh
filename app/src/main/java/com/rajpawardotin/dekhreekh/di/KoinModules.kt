@@ -20,7 +20,6 @@ val appModule = module {
             DekhreekhDatabase::class.java,
             "dekhreekh_database"
         )
-        .fallbackToDestructiveMigration()
         .build()
     }
     single { get<DekhreekhDatabase>().sessionDao() }

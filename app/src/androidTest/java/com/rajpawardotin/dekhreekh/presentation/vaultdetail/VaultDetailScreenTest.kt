@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.compose.runtime.Composable
 import com.rajpawardotin.dekhreekh.domain.models.TelemetryData
+import io.github.raj.liquid.rememberLiquidState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,8 +25,10 @@ class VaultDetailScreenTest {
         )
 
         composeTestRule.setContent {
+            val liquidState = rememberLiquidState()
             VaultDetailScreen(
-                telemetryPath = mockData
+                telemetryPath = mockData,
+                liquidState = liquidState
             )
         }
 
@@ -42,8 +45,10 @@ class VaultDetailScreenTest {
         )
 
         composeTestRule.setContent {
+            val liquidState = rememberLiquidState()
             VaultDetailScreen(
-                telemetryPath = mockData
+                telemetryPath = mockData,
+                liquidState = liquidState
             )
         }
 
@@ -51,5 +56,3 @@ class VaultDetailScreenTest {
         composeTestRule.onNodeWithTag("DetailMetricsCard").assertIsDisplayed()
     }
 }
-
-

@@ -33,6 +33,31 @@ import android.widget.Toast
 import kotlinx.coroutines.launch
 import com.rajpawardotin.dekhreekh.utils.ImportEngine
 import io.github.raj.liquid.rememberLiquidState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MyLocation
+import io.github.raj.liquid.molecules.LiquidGlassCard
+import io.github.raj.liquid.molecules.BottomNavItem
+import io.github.raj.liquid.molecules.LiquidGlassBottomNav
+import io.github.raj.liquid.tokens.LiquidPhysicsPreset
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
@@ -73,7 +98,8 @@ fun AppNavigation(navController: NavHostController) {
                 hasPermission = permissions.entries.all { it.value }
             }
 
-            var showVault by remember { mutableStateOf(false) }
+            var showVault by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+            var locateTrigger by remember { mutableStateOf(0) }
 
             // Handle system back gesture when Vault overlay is open
             BackHandler(enabled = showVault) {
@@ -103,9 +129,9 @@ fun AppNavigation(navController: NavHostController) {
                             context.startService(stopIntent)
                         }
                     },
-                    onNavigateToVault = { showVault = true },
                     liquidState = liquidState,
-                    isOverlayOpen = showVault
+                    isOverlayOpen = showVault,
+                    locateTrigger = locateTrigger
                 )
 
                 // Render Vault Screen as an instantaneous overlay on top of Dashboard
@@ -241,6 +267,85 @@ fun AppNavigation(navController: NavHostController) {
                         onRenameTagGlobally = vaultViewModel::renameTagGlobally,
                         onDeleteTagGlobally = vaultViewModel::deleteTagGlobally,
                         liquidState = liquidState
+                    )
+                }
+
+                // 3. Floating Glass Dock (always on top of both Dashboard and Vault screens!)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .navigationBarsPadding()
+                        .padding(bottom = 16.dp),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    val navItems = remember {
+                        listOf(
+                            BottomNavItem("Map", Icons.Default.Home),
+                            BottomNavItem("Vault", Icons.Default.History),
+                            BottomNavItem("Locate", Icons.Default.MyLocation)
+                        )
+                    }
+
+                    val navContainerTokens = remember {
+                        io.github.raj.liquid.tokens.GlassComponentTokens(
+                            refraction = 0.19f,
+                            curve = 1.0f,
+                            frost = 8.00f.dp,
+                            dispersion = 1.0f,
+                            edge = 0.0f,
+                            tintAlpha = 0.0f,
+                            saturation = 0.38f,
+                            contrast = 2.0f
+                        )
+                    }
+
+                    val navIndicatorTokens = remember {
+                        io.github.raj.liquid.tokens.GlassComponentTokens(
+                            refraction = 0.04f,
+                            curve = 1.0f,
+                            frost = 2.30f.dp,
+                            dispersion = 0.43f,
+                            edge = 0.0f,
+                            tintAlpha = 0.02f,
+                            saturation = 1.95f,
+                            contrast = 1.57f
+                        )
+                    }
+
+                    LiquidGlassBottomNav(
+                        items = navItems,
+                        selectedIndex = if (showVault) 1 else 0,
+                        onItemSelected = { index ->
+                            when (index) {
+                                0 -> { showVault = false }
+                                1 -> { showVault = true }
+                                2 -> {
+                                    showVault = false
+                                    if (hasPermission) {
+                                        locateTrigger++
+                                    } else {
+                                        Toast.makeText(context, "Location permission required", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        },
+                        liquidState = liquidState,
+                        modifier = Modifier.width(280.dp),
+                        showLabels = false,
+                        height = 80.dp,
+                        applyNavigationBarPadding = false,
+                        containerTokens = navContainerTokens,
+                        indicatorTokens = navIndicatorTokens,
+                        stretchIntensity = 0.48f,
+                        squashIntensity = 0.52f,
+                        headStiffness = 617.66f,
+                        tailStiffness = 200.0f,
+                        tiltIntensity = 5.0f,
+                        refractionBoost = 1.0f,
+                        blobSize = 0.90f,
+                        metaballIntensity = 0.09f,
+                        enableItemScaleAnimation = true,
+                        enableDynamicImmersion = true,
                     )
                 }
 

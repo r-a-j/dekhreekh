@@ -8,7 +8,7 @@ import org.junit.Test
 class MappersTest {
 
     @Test
-    fun `toEntity automatically adds glitch and bogus tags for distance less than 5 meters`() {
+    fun `toEntity automatically adds glitch tag for distance less than 5 meters`() {
         val session = WorkoutSession(
             id = "test-id",
             startTime = 1000L,
@@ -26,11 +26,10 @@ class MappersTest {
         val tagsList = entity.tags.split(",")
         assertTrue(tagsList.contains("jog"))
         assertTrue(tagsList.contains("glitch"))
-        assertTrue(tagsList.contains("bogus"))
     }
 
     @Test
-    fun `toEntity does not add glitch and bogus tags for distance greater than or equal to 5 meters`() {
+    fun `toEntity does not add glitch tag for distance greater than or equal to 5 meters`() {
         val session = WorkoutSession(
             id = "test-id",
             startTime = 1000L,
@@ -48,6 +47,5 @@ class MappersTest {
         val tagsList = entity.tags.split(",")
         assertTrue(tagsList.contains("run"))
         assertTrue(!tagsList.contains("glitch"))
-        assertTrue(!tagsList.contains("bogus"))
     }
 }

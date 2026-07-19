@@ -53,7 +53,8 @@ fun TrackingMap(
     isStaticHistory: Boolean = false,
     selectedPoint: TelemetryData? = null,
     liquidState: LiquidState? = null,
-    isOverlayOpen: Boolean = false
+    isOverlayOpen: Boolean = false,
+    locateTrigger: Int = 0
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -70,6 +71,73 @@ fun TrackingMap(
     val lastLocationState = remember { mutableStateOf<Location?>(null) }
     val initialLocationSent = remember { mutableStateOf(false) }
 
+    // Remote locate trigger animation handler
+    LaunchedEffect(locateTrigger) {
+        if (locateTrigger > 0) {
+            val map = mapLibreMap ?: return@LaunchedEffect
+            
+            // Fall back to LocationManager query if live state is null
+            var loc = lastLocationState.value
+            if (loc == null) {
+                val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE) as android.location.LocationManager
+                loc = try {
+                    locationManager.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
+                        ?: locationManager.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+                } catch (e: SecurityException) { null }
+            }
+            
+            val targetLoc = loc ?: return@LaunchedEffect
+            map.animateCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.Builder()
+                        .target(LatLng(targetLoc.latitude, targetLoc.longitude))
+                        .zoom(16.5)
+                        .tilt(55.0)
+                        .build()
+                ),
+                1000
+            )
+
+            // Rapid color pulse animation on the location dot layers!
+            val style = map.style ?: return@LaunchedEffect
+            val pulseLayer = style.getLayerAs<CircleLayer>("user-location-pulse")
+            val glowLayer = style.getLayerAs<CircleLayer>("user-location-glow")
+            val coreLayer = style.getLayerAs<CircleLayer>("user-location-layer")
+            
+            if (pulseLayer != null && glowLayer != null && coreLayer != null) {
+                val neonColors = listOf(
+                    "#007AFF", // Cyan
+                    "#0055FF", // Purple
+                    "#007AFF", // Coral
+                    "#0055FF", // Green
+                    "#007AFF", // Yellow
+                    "#0055FF"  // Back to Electric Blue
+                )
+                
+                for (colorStr in neonColors) {
+                    val parsedColor = AndroidColor.parseColor(colorStr)
+                    coreLayer.setProperties(circleColor(parsedColor))
+                    glowLayer.setProperties(circleColor(parsedColor), circleRadius(22f), circleOpacity(0.40f))
+                    pulseLayer.setProperties(circleColor(parsedColor), circleRadius(38f), circleOpacity(0.20f))
+                    
+                    kotlinx.coroutines.delay(100) // 100ms
+                    
+                    // overshoot back
+                    glowLayer.setProperties(circleRadius(16f), circleOpacity(0.25f))
+                    pulseLayer.setProperties(circleRadius(28f), circleOpacity(0.10f))
+                    
+                    kotlinx.coroutines.delay(100)
+                }
+                
+                // Reset to default Electric Blue
+                val defaultColor = AndroidColor.parseColor("#0055FF")
+                coreLayer.setProperties(circleColor(defaultColor))
+                glowLayer.setProperties(circleColor(defaultColor), circleRadius(16f), circleOpacity(0.25f))
+                pulseLayer.setProperties(circleColor(defaultColor), circleRadius(28f), circleOpacity(0.10f))
+            }
+        }
+    }
+
     // Initialize MapLibre
     LaunchedEffect(mapView) {
         val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager
@@ -82,40 +150,81 @@ fun TrackingMap(
 
         mapView.getMapAsync { map ->
             mapLibreMap = map
-            map.setStyle("https://tiles.openfreemap.org/styles/dark") { style ->
-                // Path source and layer
+            // "fiord" style: dark-based but richly colorful — deep ocean blues, vivid road accents,
+            // terrain relief. Best of both worlds: white text stays readable, map stays vibrant.
+            map.setStyle("https://tiles.openfreemap.org/styles/liberty") { style ->
+                // ── Path source ───────────────────────────────────────────────
                 val source = GeoJsonSource("tracking-path-source")
                 style.addSource(source)
 
-                val lineLayer = LineLayer("tracking-path-layer", "tracking-path-source")
-                    .withProperties(
-                        lineColor(AndroidColor.parseColor("#D4FF00")),
-                        lineWidth(6f),
-                        lineCap("round"),
-                        lineJoin("round"),
-                        lineOpacity(0.9f)
-                    )
-                style.addLayer(lineLayer)
+                // Layer 1: Wide outer bloom (biggest, most transparent) — the glow aura
+                val lineGlowOuter = LineLayer("tracking-path-glow-outer", "tracking-path-source")
+                .withProperties(
+                    lineColor(AndroidColor.parseColor("#220077FF")), // Deep Electric Blue bloom
+                    lineWidth(28f),
+                    lineCap("round"),
+                    lineJoin("round"),
+                    lineOpacity(0.18f),
+                    lineBlur(8f)
+                )
+                style.addLayer(lineGlowOuter)
 
-                // Location dot source and layers
+                // Layer 2: Mid glow halo
+                val lineGlowMid = LineLayer("tracking-path-glow-mid", "tracking-path-source")
+                .withProperties(
+                    lineColor(AndroidColor.parseColor("#5500AFFF")), // Vibrant Cyan-blue halo
+                    lineWidth(14f),
+                    lineCap("round"),
+                    lineJoin("round"),
+                    lineOpacity(0.35f),
+                    lineBlur(4f)
+                )
+                style.addLayer(lineGlowMid)
+
+                // Layer 3: Sharp bright core — the actual neon trail line
+                val lineCore = LineLayer("tracking-path-layer", "tracking-path-source")
+                .withProperties(
+                    lineColor(AndroidColor.parseColor("#0055FF")), // Electric Blue core
+                    lineWidth(5f),
+                    lineCap("round"),
+                    lineJoin("round"),
+                    lineOpacity(1.0f)
+                )
+                style.addLayer(lineCore)
+
+                // ── Location dot source ───────────────────────────────────────
                 val circleSource = GeoJsonSource("user-location-source")
                 style.addSource(circleSource)
 
+                // Outer pulse ring — large, very transparent
+                val circlePulse = CircleLayer("user-location-pulse", "user-location-source")
+                .withProperties(
+                    circleColor(AndroidColor.parseColor("#0055FF")),
+                    circleRadius(28f),
+                    circleOpacity(0.10f),
+                    circleBlur(1f)
+                )
+                style.addLayer(circlePulse)
+
+                // Inner glow ring
                 val circleGlow = CircleLayer("user-location-glow", "user-location-source")
-                    .withProperties(
-                        circleColor(AndroidColor.parseColor("#D4FF00")),
-                        circleRadius(18f),
-                        circleOpacity(0.2f)
-                    )
+                .withProperties(
+                    circleColor(AndroidColor.parseColor("#0055FF")),
+                    circleRadius(16f),
+                    circleOpacity(0.25f),
+                    circleBlur(0.5f)
+                )
                 style.addLayer(circleGlow)
 
+                // Core dot — sharp, bright
                 val circleLayer = CircleLayer("user-location-layer", "user-location-source")
-                    .withProperties(
-                        circleColor(AndroidColor.parseColor("#D4FF00")),
-                        circleRadius(8f),
-                        circleStrokeColor(AndroidColor.WHITE),
-                        circleStrokeWidth(2.5f)
-                    )
+                .withProperties(
+                    circleColor(AndroidColor.parseColor("#0055FF")),
+                    circleRadius(8f),
+                    circleStrokeColor(AndroidColor.WHITE),
+                    circleStrokeWidth(2.5f),
+                    circleOpacity(1.0f)
+                )
                 style.addLayer(circleLayer)
 
                 if (!isStaticHistory) {
@@ -133,8 +242,9 @@ fun TrackingMap(
                 map.moveCamera(CameraUpdateFactory.newCameraPosition(
                     CameraPosition.Builder()
                         .target(initialLatLng)
-                        .zoom(16.0)
-                        .tilt(60.0)
+                        .zoom(16.5)   // slightly closer
+                        .tilt(55.0)   // dramatic 3D perspective tilt
+                        .bearing(0.0)
                         .build()
                 ))
             }
@@ -267,74 +377,7 @@ fun TrackingMap(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Locate button only shown in live tracking mode and when overlay is not open
-        if (!isStaticHistory && !isOverlayOpen) {
-            lastLocationState.value?.let { loc ->
-                if (liquidState != null) {
-                    LiquidGlassCard(
-                        liquidState = liquidState,
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp),
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .statusBarsPadding()
-                            .padding(top = 76.dp, start = 16.dp)
-                            .size(48.dp)
-                            .clickable {
-                                mapLibreMap?.animateCamera(
-                                    CameraUpdateFactory.newCameraPosition(
-                                        CameraPosition.Builder()
-                                            .target(LatLng(loc.latitude, loc.longitude))
-                                            .zoom(16.0)
-                                            .tilt(60.0)
-                                            .build()
-                                    ),
-                                    1000
-                                )
-                            }
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MyLocation,
-                                contentDescription = "Locate",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                } else {
-                    IconButton(
-                        onClick = {
-                            mapLibreMap?.animateCamera(
-                                CameraUpdateFactory.newCameraPosition(
-                                    CameraPosition.Builder()
-                                        .target(LatLng(loc.latitude, loc.longitude))
-                                        .zoom(16.0)
-                                        .tilt(60.0)
-                                        .build()
-                                ),
-                                1000
-                            )
-                        },
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .statusBarsPadding()
-                            .padding(top = 76.dp, start = 16.dp)
-                            .background(Color(0xF2181824), shape = CircleShape)
-                            .border(1.dp, Color(0x1AFFFFFF), shape = CircleShape)
-                            .size(48.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MyLocation,
-                            contentDescription = "Locate",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-        }
+
 
         if (pathPoints.isNotEmpty()) {
             Box(modifier = Modifier.testTag("TrackingPolyline"))
