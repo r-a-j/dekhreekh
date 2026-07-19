@@ -3,7 +3,6 @@ package com.rajpawardotin.dekhreekh.data.repository
 import com.rajpawardotin.dekhreekh.data.local.dao.SessionDao
 import com.rajpawardotin.dekhreekh.data.local.dao.TelemetryDao
 import com.rajpawardotin.dekhreekh.data.local.entity.SessionEntity
-import com.rajpawardotin.dekhreekh.data.local.entity.TelemetryEntity
 import com.rajpawardotin.dekhreekh.domain.models.TelemetryData
 import com.rajpawardotin.dekhreekh.domain.models.WorkoutSession
 import com.rajpawardotin.dekhreekh.domain.repository.SessionRepository
@@ -58,6 +57,11 @@ class SessionRepositoryImpl(
 
     override suspend fun insertTelemetry(sessionId: String, data: TelemetryData) {
         telemetryDao.insertPoint(data.toEntity(sessionId))
+    }
+
+    override suspend fun insertTelemetryBatch(sessionId: String, dataList: List<TelemetryData>) {
+        if (dataList.isEmpty()) return
+        telemetryDao.insertPoints(dataList.map { it.toEntity(sessionId) })
     }
 
     override fun getAllSessions(): Flow<List<WorkoutSession>> {

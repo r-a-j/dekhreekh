@@ -5,12 +5,18 @@ import com.rajpawardotin.dekhreekh.domain.repository.SessionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class SessionRecorder(private val repository: SessionRepository) {
+class SessionRecorder(
+    private val repository: SessionRepository,
+    private val bufferSizeThreshold: Int = 5
+) {
 
     private val _activeSessionId = MutableStateFlow("")
     val activeSessionId = _activeSessionId.asStateFlow()
 
+    private val telemetryBuffer = mutableListOf<TelemetryData>()
+
     suspend fun startRecording(): String {
+        telemetryBuffer.clear()
         val newId = repository.startSession()
         _activeSessionId.value = newId
         return newId
@@ -33,7 +39,18 @@ class SessionRecorder(private val repository: SessionRepository) {
                 speed = speed,
                 timestamp = timestamp
             )
-            repository.insertTelemetry(_activeSessionId.value, data)
+            telemetryBuffer.add(data)
+            if (telemetryBuffer.size >= bufferSizeThreshold) {
+                flushBuffer()
+            }
+        }
+    }
+
+    private suspend fun flushBuffer() {
+        if (_activeSessionId.value.isNotEmpty() && telemetryBuffer.isNotEmpty()) {
+            val batch = telemetryBuffer.toList()
+            telemetryBuffer.clear()
+            repository.insertTelemetryBatch(_activeSessionId.value, batch)
         }
     }
 
@@ -43,6 +60,7 @@ class SessionRecorder(private val repository: SessionRepository) {
         averagePace: Long
     ) {
         if (_activeSessionId.value.isNotEmpty()) {
+            flushBuffer()
             repository.endSession(
                 sessionId = _activeSessionId.value,
                 totalDistanceMeters = totalDistanceMeters,

@@ -8,6 +8,7 @@ interface SessionRepository {
     suspend fun startSession(): String
     suspend fun endSession(sessionId: String, totalDistanceMeters: Float, totalDurationSeconds: Long, averagePace: Long)
     suspend fun insertTelemetry(sessionId: String, data: TelemetryData)
+    suspend fun insertTelemetryBatch(sessionId: String, dataList: List<TelemetryData>) {}
     fun getAllSessions(): Flow<List<WorkoutSession>>
     fun getTelemetryForSession(sessionId: String): Flow<List<TelemetryData>>
     fun getTotalTelemetryCount(): Flow<Int>
