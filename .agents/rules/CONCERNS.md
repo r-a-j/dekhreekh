@@ -4,12 +4,6 @@
 
 ## Tech Debt
 
-**Room Database Destructive Migration:**
-- Issue: `DekhreekhDatabase` builder uses `.fallbackToDestructiveMigration()`.
-- Files: `app/src/main/java/com/rajpawardotin/dekhreekh/di/KoinModules.kt`
-- Impact: If the database schema version is bumped (e.g. adding new telemetry columns), all user data (WorkoutSession and TelemetryEntity rows) will be permanently deleted upon app restart unless a migration plan is explicitly written. This is highly dangerous for a local-first application.
-- Fix approach: Implement proper schema versioning and write manual migration paths (`Migration` classes) for all future schema alterations.
-
 **Hard Dependency on FusedLocationProviderClient:**
 - Issue: GPS updates depend strictly on Google Play Services location package.
 - Files: `app/src/main/java/com/rajpawardotin/dekhreekh/service/TrackingService.kt`
