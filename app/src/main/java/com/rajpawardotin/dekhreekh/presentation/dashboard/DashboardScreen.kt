@@ -45,6 +45,9 @@ import io.github.raj.liquid.liquefiable
 import io.github.raj.liquid.molecules.LiquidGlassCard
 import io.github.raj.liquid.molecules.LiquidButton
 
+import android.annotation.SuppressLint
+
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun DashboardScreen(
     uiState: TrackingState,
