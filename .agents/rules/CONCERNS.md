@@ -2,14 +2,6 @@
 
 **Analysis Date:** 2026-07-17
 
-## Tech Debt
-
-**Hard Dependency on FusedLocationProviderClient:**
-- Issue: GPS updates depend strictly on Google Play Services location package.
-- Files: `app/src/main/java/com/rajpawardotin/dekhreekh/service/TrackingService.kt`
-- Impact: The app will fail to receive location telemetry on de-Googled Android devices or emulators lacking Google Play Services.
-- Fix approach: Implement a fallback to the standard Android system `LocationManager` API if Play Services is unavailable.
-
 ## Security Considerations
 
 **Background Location Permission Request:**
